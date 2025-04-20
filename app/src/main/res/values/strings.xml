@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">CourseSharingApp</string>
+    <string name="login">Login</string>
+    <string name="register">Register</string>
+    <string name="email">Email</string>
+    <string name="password">Password</string>
+    <string name="username">Username</string>
+    <string name="registration">Registration</string>
+    <string name="confirm_password">Confirm Password</string>
+    <string name="password_min_chars">Password (min. 6 characters)</string>
+    <string name="cancel">Cancel</string>
+    <string name="logout">Logout</string>
+    <string name="welcome">Welcome to Course Sharing App!</string>
+    <string name="logged_in_as">Logged in as: %s</string>
 </resources>

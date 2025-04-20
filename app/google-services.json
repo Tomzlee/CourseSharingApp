@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "743052527852",
+    "project_id": "coursesharingapp",
+    "storage_bucket": "coursesharingapp.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:743052527852:android:654970d6a96efe77d57dc9",
+        "android_client_info": {
+          "package_name": "com.example.coursesharingapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAdrLFCP8LaPxtXU37qOcm7yLuLoB6nEXs"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
