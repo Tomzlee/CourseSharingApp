@@ -1,72 +1,73 @@
 package com.example.coursesharingapp;
 
 import android.os.Bundle;
-import android.util.Log;
-import android.widget.Toast;
+import android.view.View;
 
-import androidx.appcompat.widget.Toolbar;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.navigation.NavController;
 import androidx.navigation.fragment.NavHostFragment;
-import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
+
+import com.example.coursesharingapp.databinding.ActivityMainBinding;
+import com.example.coursesharingapp.repository.AuthRepository;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static final String TAG = "MainActivity";
+    private ActivityMainBinding binding;
     private NavController navController;
-    private AppBarConfiguration appBarConfiguration;
+    private AuthRepository authRepository;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
 
-        try {
-            // Set up toolbar
-            Toolbar toolbar = findViewById(R.id.toolbar);
-            if (toolbar != null) {
-                setSupportActionBar(toolbar);
-                Log.d(TAG, "Toolbar set as support action bar");
-            } else {
-                Log.e(TAG, "Toolbar is null");
-                Toast.makeText(this, "Toolbar not found", Toast.LENGTH_SHORT).show();
-            }
+        binding = ActivityMainBinding.inflate(getLayoutInflater());
+        setContentView(binding.getRoot());
 
-            // Set up navigation
-            NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
-                    .findFragmentById(R.id.nav_host_fragment);
+        // Initialize Firebase Auth
+        authRepository = new AuthRepository();
 
-            if (navHostFragment != null) {
-                navController = navHostFragment.getNavController();
-                Log.d(TAG, "NavController obtained from NavHostFragment");
+        // Setup Navigation
+        NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
+                .findFragmentById(R.id.nav_host_fragment);
 
-                // Configure app bar to know about the nav destinations
-                appBarConfiguration = new AppBarConfiguration.Builder(
-                        R.id.loginFragment, R.id.homeFragment)
-                        .build();
+        if (navHostFragment != null) {
+            navController = navHostFragment.getNavController();
 
-                NavigationUI.setupActionBarWithNavController(this, navController, appBarConfiguration);
-                Log.d(TAG, "Navigation set up successfully");
-            } else {
-                Log.e(TAG, "NavHostFragment is null");
-                Toast.makeText(this, "Navigation fragment not found", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            Log.e(TAG, "Error during setup: " + e.getMessage());
-            e.printStackTrace();
-            Toast.makeText(this, "Error during app initialization: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            // Set up bottom navigation with navController
+            NavigationUI.setupWithNavController(binding.bottomNavigation, navController);
+
+            // Hide bottom navigation on auth screens
+            navController.addOnDestinationChangedListener((controller, destination, arguments) -> {
+                if (destination.getId() == R.id.loginFragment ||
+                        destination.getId() == R.id.registerFragment) {
+                    binding.bottomNavigation.setVisibility(View.GONE);
+                } else {
+                    binding.bottomNavigation.setVisibility(View.VISIBLE);
+                }
+            });
         }
+
+        // Check if user is already logged in
+        checkAuthState();
     }
 
-    @Override
-    public boolean onSupportNavigateUp() {
-        try {
-            return NavigationUI.navigateUp(navController, appBarConfiguration) || super.onSupportNavigateUp();
-        } catch (Exception e) {
-            Log.e(TAG, "Error during navigation up: " + e.getMessage());
-            e.printStackTrace();
-            return super.onSupportNavigateUp();
+    private void checkAuthState() {
+        FirebaseUser currentUser = authRepository.getCurrentUser();
+
+        if (currentUser == null) {
+            // User is not logged in, navigate to login
+            if (navController.getCurrentDestination().getId() != R.id.loginFragment) {
+                navController.navigate(R.id.loginFragment);
+            }
+        } else {
+            // User is logged in, navigate to home
+            if (navController.getCurrentDestination().getId() == R.id.loginFragment ||
+                    navController.getCurrentDestination().getId() == R.id.registerFragment) {
+                navController.navigate(R.id.homeFragment);
+            }
         }
     }
 }

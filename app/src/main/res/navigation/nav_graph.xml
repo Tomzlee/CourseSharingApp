@@ -7,14 +7,14 @@
 
     <fragment
         android:id="@+id/loginFragment"
-        android:name="com.example.coursesharingapp.ui.LoginFragment"
-        android:label="fragment_login"
+        android:name="com.example.coursesharingapp.ui.auth.LoginFragment"
+        android:label="Login"
         tools:layout="@layout/fragment_login">
         <action
-            android:id="@+id/action_loginFragment_to_registerFragment"
+            android:id="@+id/action_to_register"
             app:destination="@id/registerFragment" />
         <action
-            android:id="@+id/action_loginFragment_to_homeFragment"
+            android:id="@+id/action_to_home"
             app:destination="@id/homeFragment"
             app:popUpTo="@id/loginFragment"
             app:popUpToInclusive="true" />
@@ -22,26 +22,48 @@
 
     <fragment
         android:id="@+id/registerFragment"
-        android:name="com.example.coursesharingapp.ui.RegisterFragment"
-        android:label="fragment_register"
+        android:name="com.example.coursesharingapp.ui.auth.RegisterFragment"
+        android:label="Register"
         tools:layout="@layout/fragment_register">
         <action
-            android:id="@+id/action_registerFragment_to_homeFragment"
+            android:id="@+id/action_to_home"
             app:destination="@id/homeFragment"
             app:popUpTo="@id/loginFragment"
-            app:popUpToInclusive="true"
-            app:launchSingleTop="true" />
+            app:popUpToInclusive="true" />
     </fragment>
 
     <fragment
         android:id="@+id/homeFragment"
-        android:name="com.example.coursesharingapp.ui.HomeFragment"
-        android:label="fragment_home"
+        android:name="com.example.coursesharingapp.ui.home.HomeFragment"
+        android:label="Home"
         tools:layout="@layout/fragment_home">
         <action
-            android:id="@+id/action_homeFragment_to_loginFragment"
-            app:destination="@id/loginFragment"
-            app:popUpTo="@id/homeFragment"
-            app:popUpToInclusive="true" />
+            android:id="@+id/action_to_courseDetail"
+            app:destination="@id/courseDetailFragment" />
+        <action
+            android:id="@+id/action_to_uploadCourse"
+            app:destination="@id/uploadCourseFragment" />
     </fragment>
+
+    <fragment
+        android:id="@+id/profileFragment"
+        android:name="com.example.coursesharingapp.ui.profile.ProfileFragment"
+        android:label="Profile"
+        tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/courseDetailFragment"
+        android:name="com.example.coursesharingapp.ui.course.CourseDetailFragment"
+        android:label="Course Detail"
+        tools:layout="@layout/fragment_course_detail">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/uploadCourseFragment"
+        android:name="com.example.coursesharingapp.ui.upload.UploadCourseFragment"
+        android:label="Upload Course"
+        tools:layout="@layout/fragment_upload_course" />
 </navigation>

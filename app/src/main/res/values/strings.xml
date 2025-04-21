@@ -1,15 +1,42 @@
 <resources>
-    <string name="app_name">CourseSharingApp</string>
+    <string name="app_name">Course Sharing App</string>
+
+    <!-- Auth -->
     <string name="login">Login</string>
     <string name="register">Register</string>
     <string name="email">Email</string>
     <string name="password">Password</string>
-    <string name="username">Username</string>
-    <string name="registration">Registration</string>
     <string name="confirm_password">Confirm Password</string>
-    <string name="password_min_chars">Password (min. 6 characters)</string>
-    <string name="cancel">Cancel</string>
-    <string name="logout">Logout</string>
-    <string name="welcome">Welcome to Course Sharing App!</string>
-    <string name="logged_in_as">Logged in as: %s</string>
+    <string name="username">Username</string>
+    <string name="don_t_have_an_account_register_here">Don\'t have an account? Register here</string>
+    <string name="already_have_an_account_login_here">Already have an account? Login here</string>
+
+    <!-- Home -->
+    <string name="home">Home</string>
+    <string name="add_new_course">Add new course</string>
+    <string name="no_courses_available">No courses available</string>
+
+    <!-- Course -->
+    <string name="description">Description</string>
+    <string name="video_not_available">Video not available</string>
+    <string name="by_username">By: %1$s</string>
+
+    <!-- Upload -->
+    <string name="upload_new_course">Upload New Course</string>
+    <string name="course_title">Course Title</string>
+    <string name="short_description_displayed_in_list">Short Description (displayed in list)</string>
+    <string name="long_description_displayed_in_details">Long Description (displayed in details)</string>
+    <string name="select_thumbnail_image">Select Thumbnail Image</string>
+    <string name="select_video">Select Video</string>
+    <string name="thumbnail_selected">Thumbnail selected</string>
+    <string name="video_selected">Video selected</string>
+    <string name="upload_course">Upload Course</string>
+
+    <!-- Profile -->
+    <string name="profile">Profile</string>
+    <string name="username_colon">Username:</string>
+    <string name="email_colon">Email:</string>
+    <string name="sign_out">Sign Out</string>
+    <string name="my_courses">My Courses</string>
+    <string name="you_haven_t_uploaded_any_courses_yet">You haven\'t uploaded any courses yet</string>
 </resources>
