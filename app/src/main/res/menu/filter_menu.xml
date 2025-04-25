@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <item
+        android:id="@+id/action_search"
+        android:icon="@android:drawable/ic_menu_search"
+        android:title="Search"
+        app:actionViewClass="androidx.appcompat.widget.SearchView"
+        app:showAsAction="ifRoom|collapseActionView" />
+
+    <item
+        android:id="@+id/action_filter"
+        android:icon="@android:drawable/ic_menu_sort_by_size"
+        android:title="Filter"
+        app:showAsAction="ifRoom">
+        <menu>
+            <item
+                android:id="@+id/filter_all"
+                android:title="All Courses" />
+
+            <item
+                android:id="@+id/filter_by_category"
+                android:title="Filter by Category">
+                <menu>
+                    <item
+                        android:id="@+id/category_art"
+                        android:title="Art" />
+                    <item
+                        android:id="@+id/category_tech"
+                        android:title="Tech/Programming" />
+                    <item
+                        android:id="@+id/category_business"
+                        android:title="Business/Marketing" />
+                    <item
+                        android:id="@+id/category_life"
+                        android:title="Life" />
+                    <item
+                        android:id="@+id/category_other"
+                        android:title="Other" />
+                </menu>
+            </item>
+
+            <item
+                android:id="@+id/filter_by_author"
+                android:title="My Courses" />
+        </menu>
+    </item>
+</menu>

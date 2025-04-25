@@ -9,6 +9,8 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.NavOptions;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
@@ -57,14 +59,14 @@ public class ProfileFragment extends Fragment implements CourseAdapter.OnCourseC
         // Check if user is authenticated
         FirebaseUser currentUser = authRepository.getCurrentUser();
         if (currentUser == null) {
-            Navigation.findNavController(requireView()).navigate(R.id.loginFragment);
+            navigateToLogin();
             return;
         }
 
         // Set up sign out button
         binding.signOutButton.setOnClickListener(v -> {
             authRepository.signOut();
-            Navigation.findNavController(requireView()).navigate(R.id.loginFragment);
+            navigateToLogin();
         });
 
         // Setup RecyclerView
@@ -75,6 +77,15 @@ public class ProfileFragment extends Fragment implements CourseAdapter.OnCourseC
 
         // Load user's uploaded courses
         loadUserCourses(currentUser.getUid());
+    }
+
+    private void navigateToLogin() {
+        NavController navController = Navigation.findNavController(requireView());
+        // Create NavOptions to clear the back stack
+        NavOptions navOptions = new NavOptions.Builder()
+                .setPopUpTo(R.id.homeFragment, true)  // Pop up to home (exclusive)
+                .build();
+        navController.navigate(R.id.loginFragment, null, navOptions);
     }
 
     private void setupRecyclerView() {

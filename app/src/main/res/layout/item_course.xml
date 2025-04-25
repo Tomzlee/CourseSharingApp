@@ -23,6 +23,17 @@
             app:layout_constraintTop_toTopOf="parent"
             tools:src="@tools:sample/backgrounds/scenic" />
 
+        <!-- Category Chip -->
+        <com.google.android.material.chip.Chip
+            android:id="@+id/course_category_chip"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_margin="8dp"
+            android:textSize="12sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            tools:text="Art" />
+
         <TextView
             android:id="@+id/course_title_tv"
             android:layout_width="0dp"

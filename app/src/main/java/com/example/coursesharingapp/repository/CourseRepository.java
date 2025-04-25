@@ -49,6 +49,7 @@ public class CourseRepository {
         void onError(String errorMessage);
     }
 
+    // Get all courses (no filter)
     public void getAllCourses(CoursesCallback callback) {
         firestore.collection("courses")
                 .orderBy("createdAt", Query.Direction.DESCENDING)
@@ -68,6 +69,72 @@ public class CourseRepository {
                 });
     }
 
+    // Get courses by category
+    public void getCoursesByCategory(String category, CoursesCallback callback) {
+        firestore.collection("courses")
+                .whereEqualTo("category", category)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Course> courses = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Course course = document.toObject(Course.class);
+                            course.setId(document.getId());
+                            courses.add(course);
+                        }
+                        callback.onCoursesLoaded(courses);
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Get courses by uploader (my courses)
+    public void getCoursesByUploader(String uploaderUid, CoursesCallback callback) {
+        firestore.collection("courses")
+                .whereEqualTo("uploaderUid", uploaderUid)
+                .orderBy("createdAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Course> courses = new ArrayList<>();
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Course course = document.toObject(Course.class);
+                            course.setId(document.getId());
+                            courses.add(course);
+                        }
+                        callback.onCoursesLoaded(courses);
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Search courses by name (title)
+    public void searchCoursesByTitle(String query, CoursesCallback callback) {
+        // Get all courses and filter client-side since Firestore doesn't support 'contains' queries
+        getAllCourses(new CoursesCallback() {
+            @Override
+            public void onCoursesLoaded(List<Course> allCourses) {
+                List<Course> filteredCourses = new ArrayList<>();
+                String lowercaseQuery = query.toLowerCase();
+
+                for (Course course : allCourses) {
+                    if (course.getTitle().toLowerCase().contains(lowercaseQuery)) {
+                        filteredCourses.add(course);
+                    }
+                }
+
+                callback.onCoursesLoaded(filteredCourses);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
 
     public void getCourseById(String courseId, SingleCourseCallback callback) {
         firestore.collection("courses")

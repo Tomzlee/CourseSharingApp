@@ -12,19 +12,33 @@ public class Course {
     private String uploaderUsername;
     private String thumbnailUrl;
     private String videoUrl;
+    private String category; // New field for category
     private Object createdAt; // Can be either Timestamp or Long
+
+    // Category constants
+    public static final String CATEGORY_ART = "Art";
+    public static final String CATEGORY_TECH = "Tech/Programming";
+    public static final String CATEGORY_BUSINESS = "Business/Marketing";
+    public static final String CATEGORY_LIFE = "Life";
+    public static final String CATEGORY_OTHER = "Other";
+
+    // Category options for spinner/dropdown
+    public static final String[] CATEGORY_OPTIONS = {
+            CATEGORY_ART, CATEGORY_TECH, CATEGORY_BUSINESS, CATEGORY_LIFE, CATEGORY_OTHER
+    };
 
     public Course() {
         // Required empty constructor for Firestore
     }
 
     public Course(String title, String shortDescription, String longDescription,
-                  String uploaderUid, String uploaderUsername) {
+                  String uploaderUid, String uploaderUsername, String category) {
         this.title = title;
         this.shortDescription = shortDescription;
         this.longDescription = longDescription;
         this.uploaderUid = uploaderUid;
         this.uploaderUsername = uploaderUsername;
+        this.category = category;
         this.createdAt = Timestamp.now();
     }
 
@@ -91,6 +105,14 @@ public class Course {
 
     public void setVideoUrl(String videoUrl) {
         this.videoUrl = videoUrl;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
     }
 
     // Handle both Timestamp and Long types for createdAt

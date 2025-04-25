@@ -8,6 +8,7 @@ import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
@@ -37,6 +38,7 @@ public class UploadCourseFragment extends Fragment {
     private Uri videoUri;
     private FirebaseUser currentUser;
     private String username;
+    private String selectedCategory;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -67,10 +69,40 @@ public class UploadCourseFragment extends Fragment {
         // Get username for the course
         getUsernameFromFirestore();
 
+        // Setup category spinner
+        setupCategorySpinner();
+
         // Setup click listeners
         binding.selectThumbnailButton.setOnClickListener(v -> selectThumbnail());
         binding.selectVideoButton.setOnClickListener(v -> selectVideo());
         binding.uploadCourseButton.setOnClickListener(v -> validateAndUploadCourse());
+    }
+
+    private void setupCategorySpinner() {
+        ArrayAdapter<String> categoryAdapter = new ArrayAdapter<>(
+                requireContext(),
+                android.R.layout.simple_spinner_item,
+                Course.CATEGORY_OPTIONS
+        );
+        categoryAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.categorySpinner.setAdapter(categoryAdapter);
+
+        // Default category selection
+        selectedCategory = Course.CATEGORY_OPTIONS[0];
+        binding.categorySpinner.setSelection(0);
+
+        // Listen for category selection changes
+        binding.categorySpinner.setOnItemSelectedListener(new android.widget.AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(android.widget.AdapterView<?> parent, View view, int position, long id) {
+                selectedCategory = Course.CATEGORY_OPTIONS[position];
+            }
+
+            @Override
+            public void onNothingSelected(android.widget.AdapterView<?> parent) {
+                // Keep default selection
+            }
+        });
     }
 
     private void getUsernameFromFirestore() {
@@ -166,7 +198,8 @@ public class UploadCourseFragment extends Fragment {
         String shortDescription = binding.shortDescriptionEt.getText().toString().trim();
         String longDescription = binding.longDescriptionEt.getText().toString().trim();
 
-        Course course = new Course(title, shortDescription, longDescription, currentUser.getUid(), username);
+        Course course = new Course(title, shortDescription, longDescription,
+                currentUser.getUid(), username, selectedCategory);
 
         courseRepository.createCourse(course, thumbnailUri, videoUri, new CourseRepository.CourseCallback() {
             @Override

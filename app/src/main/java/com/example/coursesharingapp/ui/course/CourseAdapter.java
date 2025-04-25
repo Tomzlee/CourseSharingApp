@@ -12,6 +12,7 @@ import com.bumptech.glide.Glide;
 import com.example.coursesharingapp.R;
 import com.example.coursesharingapp.databinding.ItemCourseBinding;
 import com.example.coursesharingapp.model.Course;
+import com.google.android.material.chip.Chip;
 
 import java.util.List;
 
@@ -60,6 +61,18 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             binding.courseDescriptionTv.setText(course.getShortDescription());
             binding.courseUploaderTv.setText("By: " + course.getUploaderUsername());
 
+            // Set category chip
+            if (course.getCategory() != null && !course.getCategory().isEmpty()) {
+                binding.courseCategoryChip.setText(course.getCategory());
+                binding.courseCategoryChip.setVisibility(View.VISIBLE);
+
+                // Set chip color based on category
+                int chipColorResId = getCategoryColor(course.getCategory());
+                binding.courseCategoryChip.setChipBackgroundColorResource(chipColorResId);
+            } else {
+                binding.courseCategoryChip.setVisibility(View.GONE);
+            }
+
             // Load thumbnail
             if (course.getThumbnailUrl() != null && !course.getThumbnailUrl().isEmpty()) {
                 Glide.with(context)
@@ -78,6 +91,22 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
                     listener.onCourseClick(course, position);
                 }
             });
+        }
+
+        private int getCategoryColor(String category) {
+            switch (category) {
+                case Course.CATEGORY_ART:
+                    return android.R.color.holo_purple;
+                case Course.CATEGORY_TECH:
+                    return android.R.color.holo_blue_light;
+                case Course.CATEGORY_BUSINESS:
+                    return android.R.color.holo_orange_light;
+                case Course.CATEGORY_LIFE:
+                    return android.R.color.holo_green_light;
+                case Course.CATEGORY_OTHER:
+                default:
+                    return android.R.color.darker_gray;
+            }
         }
     }
 

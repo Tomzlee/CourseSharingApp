@@ -88,6 +88,18 @@ public class CourseDetailFragment extends Fragment {
         binding.courseUploaderTv.setText("By: " + course.getUploaderUsername());
         binding.courseDescriptionTv.setText(course.getLongDescription());
 
+        // Set category chip
+        if (course.getCategory() != null && !course.getCategory().isEmpty()) {
+            binding.courseCategoryChip.setText(course.getCategory());
+            binding.courseCategoryChip.setVisibility(View.VISIBLE);
+
+            // Set chip color based on category
+            int chipColorResId = getCategoryColor(course.getCategory());
+            binding.courseCategoryChip.setChipBackgroundColorResource(chipColorResId);
+        } else {
+            binding.courseCategoryChip.setVisibility(View.GONE);
+        }
+
         // Load video
         if (course.getVideoUrl() != null && !course.getVideoUrl().isEmpty()) {
             MediaItem mediaItem = MediaItem.fromUri(Uri.parse(course.getVideoUrl()));
@@ -97,6 +109,22 @@ public class CourseDetailFragment extends Fragment {
         } else {
             binding.videoNotAvailableTv.setVisibility(View.VISIBLE);
             binding.videoView.setVisibility(View.GONE);
+        }
+    }
+
+    private int getCategoryColor(String category) {
+        switch (category) {
+            case Course.CATEGORY_ART:
+                return android.R.color.holo_purple;
+            case Course.CATEGORY_TECH:
+                return android.R.color.holo_blue_light;
+            case Course.CATEGORY_BUSINESS:
+                return android.R.color.holo_orange_light;
+            case Course.CATEGORY_LIFE:
+                return android.R.color.holo_green_light;
+            case Course.CATEGORY_OTHER:
+            default:
+                return android.R.color.darker_gray;
         }
     }
 
