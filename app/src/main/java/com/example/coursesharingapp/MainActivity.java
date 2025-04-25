@@ -65,9 +65,6 @@ public class MainActivity extends AppCompatActivity {
         } else {
             binding.bottomNavigation.setVisibility(View.VISIBLE);
         }
-
-        // We don't need to do anything special here for the main fragments
-        // The onBackPressed method will handle the back button behavior
     }
 
     @Override
@@ -83,7 +80,8 @@ public class MainActivity extends AppCompatActivity {
                 return;
             } else if (destinationId == R.id.profileFragment) {
                 // Navigate to home fragment when back is pressed from profile
-                navController.navigate(R.id.homeFragment);
+                // AND select the home item in the bottom navigation
+                binding.bottomNavigation.setSelectedItemId(R.id.homeFragment);
                 return;
             }
         }
