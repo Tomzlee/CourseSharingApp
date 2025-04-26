@@ -11,7 +11,6 @@ import androidx.navigation.ui.NavigationUI;
 
 import com.example.coursesharingapp.databinding.ActivityMainBinding;
 import com.example.coursesharingapp.repository.AuthRepository;
-import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 public class MainActivity extends AppCompatActivity {
@@ -78,8 +77,8 @@ public class MainActivity extends AppCompatActivity {
                 // Exit the app when back is pressed from home
                 finish();
                 return;
-            } else if (destinationId == R.id.profileFragment) {
-                // Navigate to home fragment when back is pressed from profile
+            } else if (destinationId == R.id.profileFragment || destinationId == R.id.playlistsFragment) {
+                // Navigate to home fragment when back is pressed from profile or playlists
                 // AND select the home item in the bottom navigation
                 binding.bottomNavigation.setSelectedItemId(R.id.homeFragment);
                 return;

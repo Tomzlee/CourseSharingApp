@@ -54,4 +54,29 @@
     <string name="email_colon">Email:</string>
     <string name="sign_out">Sign Out</string>
     <string name="you_haven_t_uploaded_any_courses_yet">You haven\'t uploaded any courses yet</string>
+
+    <!-- Playlist -->
+    <string name="playlists">Playlists</string>
+    <string name="course_playlists">Course Playlists</string>
+    <string name="all_playlists">All Playlists</string>
+    <string name="my_playlists">My Playlists</string>
+    <string name="create_new_playlist">Create new playlist</string>
+    <string name="no_playlists_available">No playlists available</string>
+    <string name="courses_in_this_playlist">Courses in this playlist:</string>
+    <string name="no_courses_in_this_playlist">No courses in this playlist</string>
+    <string name="create_playlist">Create Playlist</string>
+    <string name="create_new_playlist_title">Create New Playlist</string>
+    <string name="playlist_title">Playlist Title</string>
+    <string name="description_optional">Description (optional)</string>
+    <string name="select_your_courses_to_add">Select your courses to add:</string>
+    <string name="you_havent_uploaded_any_courses_yet">You haven\'t uploaded any courses yet</string>
+    <string name="cancel">Cancel</string>
+    <string name="please_enter_a_playlist_title">Please enter a playlist title</string>
+    <string name="please_select_at_least_one_course">Please select at least one course</string>
+    <string name="playlist_created_successfully">Playlist created successfully</string>
+    <string name="please_log_in_to_create_playlists">Please log in to create playlists</string>
+    <string name="please_log_in_to_view_your_playlists">Please log in to view your playlists</string>
+    <string name="no_description_available">No description available</string>
+    <string name="course_count_singular">%1$d course</string>
+    <string name="course_count_plural">%1$d courses</string>
 </resources>

@@ -49,7 +49,21 @@
         android:id="@+id/profileFragment"
         android:name="com.example.coursesharingapp.ui.profile.ProfileFragment"
         android:label="Profile"
-        tools:layout="@layout/fragment_profile" />
+        tools:layout="@layout/fragment_profile">
+        <action
+            android:id="@+id/action_to_courseDetail"
+            app:destination="@id/courseDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/playlistsFragment"
+        android:name="com.example.coursesharingapp.ui.playlist.PlaylistsFragment"
+        android:label="Playlists"
+        tools:layout="@layout/fragment_playlists">
+        <action
+            android:id="@+id/action_to_playlistDetail"
+            app:destination="@id/playlistDetailFragment" />
+    </fragment>
 
     <fragment
         android:id="@+id/courseDetailFragment"
@@ -59,6 +73,19 @@
         <argument
             android:name="courseId"
             app:argType="string" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/playlistDetailFragment"
+        android:name="com.example.coursesharingapp.ui.playlist.PlaylistDetailFragment"
+        android:label="Playlist Detail"
+        tools:layout="@layout/fragment_playlist_detail">
+        <argument
+            android:name="playlistId"
+            app:argType="string" />
+        <action
+            android:id="@+id/action_to_courseDetail"
+            app:destination="@id/courseDetailFragment" />
     </fragment>
 
     <fragment
