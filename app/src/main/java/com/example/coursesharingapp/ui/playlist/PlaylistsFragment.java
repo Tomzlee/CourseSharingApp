@@ -20,9 +20,11 @@ import com.example.coursesharingapp.databinding.DialogCreatePlaylistBinding;
 import com.example.coursesharingapp.databinding.FragmentPlaylistsBinding;
 import com.example.coursesharingapp.model.Course;
 import com.example.coursesharingapp.model.Playlist;
+import com.example.coursesharingapp.model.User;
 import com.example.coursesharingapp.repository.AuthRepository;
 import com.example.coursesharingapp.repository.CourseRepository;
 import com.example.coursesharingapp.repository.PlaylistRepository;
+import com.example.coursesharingapp.repository.UserRepository;
 import com.google.android.material.tabs.TabLayout;
 import com.google.firebase.auth.FirebaseUser;
 
@@ -33,6 +35,8 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
 
     private FragmentPlaylistsBinding binding;
     private PlaylistRepository playlistRepository;
+
+    private UserRepository userRepository;
     private CourseRepository courseRepository;
     private AuthRepository authRepository;
     private PlaylistAdapter playlistAdapter;
@@ -49,6 +53,7 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         courseRepository = new CourseRepository();
         authRepository = new AuthRepository();
         playlistsList = new ArrayList<>();
+        userRepository = new UserRepository();
 
         // Check if user is authenticated
         currentUser = authRepository.getCurrentUser();
@@ -247,18 +252,29 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
     private void createPlaylist(String title, String description, List<String> courseIds, Dialog dialog) {
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        Playlist playlist = new Playlist(title, description, currentUser.getUid(), currentUser.getDisplayName());
-        playlist.setCourseIds(courseIds);
-
-        playlistRepository.createPlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
+        // First get the username from Firestore
+        userRepository.getUserById(currentUser.getUid(), new UserRepository.UserCallback() {
             @Override
-            public void onSuccess() {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Playlist created successfully", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
+            public void onUserLoaded(User user) {
+                // Now create the playlist with the username
+                Playlist playlist = new Playlist(title, description, currentUser.getUid(), user.getUsername());
+                playlist.setCourseIds(courseIds);
 
-                // Reload playlists
-                loadAllPlaylists();
+                playlistRepository.createPlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
+                    @Override
+                    public void onSuccess() {
+                        binding.progressBar.setVisibility(View.GONE);
+                        Toast.makeText(requireContext(), "Playlist created successfully", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                        loadAllPlaylists();
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        binding.progressBar.setVisibility(View.GONE);
+                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
 
             @Override
