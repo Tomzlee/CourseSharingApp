@@ -53,6 +53,9 @@
         <action
             android:id="@+id/action_to_courseDetail"
             app:destination="@id/courseDetailFragment" />
+        <action
+            android:id="@+id/action_to_editCourse"
+            app:destination="@id/editCourseFragment" />
     </fragment>
 
     <fragment
@@ -93,4 +96,14 @@
         android:name="com.example.coursesharingapp.ui.upload.UploadCourseFragment"
         android:label="Upload Course"
         tools:layout="@layout/fragment_upload_course" />
+
+    <fragment
+        android:id="@+id/editCourseFragment"
+        android:name="com.example.coursesharingapp.ui.upload.EditCourseFragment"
+        android:label="Edit Course"
+        tools:layout="@layout/fragment_edit_course">
+        <argument
+            android:name="courseId"
+            app:argType="string" />
+    </fragment>
 </navigation>

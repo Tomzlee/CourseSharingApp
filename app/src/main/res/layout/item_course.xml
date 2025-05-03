@@ -64,20 +64,52 @@
             app:layout_constraintTop_toBottomOf="@+id/course_title_tv"
             tools:text="Course description text goes here. This is a short description of what the course is about." />
 
-        <TextView
-            android:id="@+id/course_uploader_tv"
+        <LinearLayout
+            android:id="@+id/bottom_layout"
             android:layout_width="0dp"
             android:layout_height="wrap_content"
             android:layout_marginStart="16dp"
             android:layout_marginTop="8dp"
             android:layout_marginEnd="16dp"
             android:layout_marginBottom="16dp"
-            android:textStyle="italic"
+            android:orientation="horizontal"
+            android:weightSum="1"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/course_description_tv"
-            tools:text="By: Username" />
+            app:layout_constraintTop_toBottomOf="@+id/course_description_tv">
+
+            <TextView
+                android:id="@+id/course_uploader_tv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textStyle="italic"
+                tools:text="By: Username" />
+
+            <ImageButton
+                android:id="@+id/edit_course_button"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:contentDescription="Edit course"
+                android:padding="4dp"
+                android:layout_marginEnd="20dp"
+                android:src="@android:drawable/ic_menu_edit"
+                android:visibility="gone" />
+
+            <ImageButton
+                android:id="@+id/delete_course_button"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:background="?android:attr/selectableItemBackground"
+                android:contentDescription="Delete course"
+                android:padding="4dp"
+                android:src="@android:drawable/ic_menu_delete"
+                android:visibility="gone"
+                app:tint="@color/red" />
+
+        </LinearLayout>
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

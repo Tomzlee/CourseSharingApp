@@ -20,12 +20,34 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
 
     private Context context;
     private List<Course> courses;
-    private OnCourseClickListener listener;
+    private OnCourseClickListener clickListener;
+    private OnCourseDeleteListener deleteListener;
+    private OnCourseEditListener editListener;
+    private boolean showDeleteButton;
+    private boolean showEditButton;
 
-    public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener listener) {
+    // Constructor with delete and edit functionality
+    public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
+                         OnCourseDeleteListener deleteListener, OnCourseEditListener editListener,
+                         boolean showDeleteButton, boolean showEditButton) {
         this.context = context;
         this.courses = courses;
-        this.listener = listener;
+        this.clickListener = clickListener;
+        this.deleteListener = deleteListener;
+        this.editListener = editListener;
+        this.showDeleteButton = showDeleteButton;
+        this.showEditButton = showEditButton;
+    }
+
+    // Constructor with delete button parameter
+    public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
+                         OnCourseDeleteListener deleteListener, boolean showDeleteButton) {
+        this(context, courses, clickListener, deleteListener, null, showDeleteButton, false);
+    }
+
+    // Original constructor for backward compatibility
+    public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener) {
+        this(context, courses, clickListener, null, null, false, false);
     }
 
     @NonNull
@@ -87,10 +109,26 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
 
             // Set click listener
             binding.getRoot().setOnClickListener(v -> {
-                if (listener != null) {
-                    listener.onCourseClick(course, position);
+                if (clickListener != null) {
+                    clickListener.onCourseClick(course, position);
                 }
             });
+
+            // Show/hide delete button based on flag
+            if (showDeleteButton && deleteListener != null) {
+                binding.deleteCourseButton.setVisibility(View.VISIBLE);
+                binding.deleteCourseButton.setOnClickListener(v -> deleteListener.onCourseDelete(course, position));
+            } else {
+                binding.deleteCourseButton.setVisibility(View.GONE);
+            }
+
+            // Show/hide edit button based on flag
+            if (showEditButton && editListener != null) {
+                binding.editCourseButton.setVisibility(View.VISIBLE);
+                binding.editCourseButton.setOnClickListener(v -> editListener.onCourseEdit(course, position));
+            } else {
+                binding.editCourseButton.setVisibility(View.GONE);
+            }
         }
 
         private int getCategoryColor(String category) {
@@ -112,5 +150,13 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
 
     public interface OnCourseClickListener {
         void onCourseClick(Course course, int position);
+    }
+
+    public interface OnCourseDeleteListener {
+        void onCourseDelete(Course course, int position);
+    }
+
+    public interface OnCourseEditListener {
+        void onCourseEdit(Course course, int position);
     }
 }

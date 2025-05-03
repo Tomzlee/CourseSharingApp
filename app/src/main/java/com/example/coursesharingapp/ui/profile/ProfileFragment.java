@@ -27,7 +27,10 @@ import com.google.firebase.auth.FirebaseUser;
 import java.util.ArrayList;
 import java.util.List;
 
-public class ProfileFragment extends Fragment implements CourseAdapter.OnCourseClickListener {
+public class ProfileFragment extends Fragment implements
+        CourseAdapter.OnCourseClickListener,
+        CourseAdapter.OnCourseDeleteListener,
+        CourseAdapter.OnCourseEditListener {
 
     private FragmentProfileBinding binding;
     private AuthRepository authRepository;
@@ -89,7 +92,8 @@ public class ProfileFragment extends Fragment implements CourseAdapter.OnCourseC
     }
 
     private void setupRecyclerView() {
-        courseAdapter = new CourseAdapter(requireContext(), userCoursesList, this);
+        // Use constructor with edit button enabled
+        courseAdapter = new CourseAdapter(requireContext(), userCoursesList, this, this, this, true, true);
         binding.userCoursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.userCoursesRecyclerView.setAdapter(courseAdapter);
     }
@@ -155,6 +159,53 @@ public class ProfileFragment extends Fragment implements CourseAdapter.OnCourseC
         Bundle args = new Bundle();
         args.putString("courseId", course.getId());
         Navigation.findNavController(requireView()).navigate(R.id.action_to_courseDetail, args);
+    }
+
+    @Override
+    public void onCourseDelete(Course course, int position) {
+        // Show confirmation dialog
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle("Delete Course")
+                .setMessage("Are you sure you want to delete this course?")
+                .setPositiveButton("Delete", (dialog, which) -> deleteCourse(course, position))
+                .setNegativeButton("Cancel", null)
+                .show();
+    }
+
+    @Override
+    public void onCourseEdit(Course course, int position) {
+        // Navigate to edit course fragment
+        Bundle args = new Bundle();
+        args.putString("courseId", course.getId());
+        Navigation.findNavController(requireView()).navigate(R.id.action_to_editCourse, args);
+    }
+
+    private void deleteCourse(Course course, int position) {
+        binding.coursesProgressBar.setVisibility(View.VISIBLE);
+
+        // Delete course using CourseRepository
+        courseRepository.deleteCourse(course.getId(), new CourseRepository.CourseCallback() {
+            @Override
+            public void onSuccess() {
+                binding.coursesProgressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), "Course deleted successfully", Toast.LENGTH_SHORT).show();
+
+                // Remove the course from the list
+                userCoursesList.remove(position);
+                courseAdapter.notifyItemRemoved(position);
+
+                // Check if list is empty
+                if (userCoursesList.isEmpty()) {
+                    binding.noUserCoursesTv.setVisibility(View.VISIBLE);
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                binding.coursesProgressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     @Override

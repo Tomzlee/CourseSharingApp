@@ -202,6 +202,102 @@ public class CourseRepository {
         });
     }
 
+    public void editCourse(Course course, Uri thumbnailUri, Uri videoUri, CourseCallback callback) {
+        // Check if course ID exists
+        if (course.getId() == null || course.getId().isEmpty()) {
+            callback.onError("Course ID is required for editing");
+            return;
+        }
+
+        // Check if there are new files to upload
+        if (thumbnailUri != null && videoUri != null) {
+            // Upload both new thumbnail and video
+            uploadThumbnail(course.getId(), thumbnailUri, new UploadCallback() {
+                @Override
+                public void onProgress(int progress) {
+                    // Handle thumbnail upload progress
+                }
+
+                @Override
+                public void onSuccess(String thumbnailUrl) {
+                    course.setThumbnailUrl(thumbnailUrl);
+
+                    uploadVideo(course.getId(), videoUri, new UploadCallback() {
+                        @Override
+                        public void onProgress(int progress) {
+                            // Handle video upload progress
+                        }
+
+                        @Override
+                        public void onSuccess(String videoUrl) {
+                            course.setVideoUrl(videoUrl);
+                            updateCourseInFirestore(course, callback);
+                        }
+
+                        @Override
+                        public void onError(String errorMessage) {
+                            callback.onError(errorMessage);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        } else if (thumbnailUri != null) {
+            // Upload only new thumbnail
+            uploadThumbnail(course.getId(), thumbnailUri, new UploadCallback() {
+                @Override
+                public void onProgress(int progress) {
+                    // Handle thumbnail upload progress
+                }
+
+                @Override
+                public void onSuccess(String thumbnailUrl) {
+                    course.setThumbnailUrl(thumbnailUrl);
+                    updateCourseInFirestore(course, callback);
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        } else if (videoUri != null) {
+            // Upload only new video
+            uploadVideo(course.getId(), videoUri, new UploadCallback() {
+                @Override
+                public void onProgress(int progress) {
+                    // Handle video upload progress
+                }
+
+                @Override
+                public void onSuccess(String videoUrl) {
+                    course.setVideoUrl(videoUrl);
+                    updateCourseInFirestore(course, callback);
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        } else {
+            // No new files, just update the course data
+            updateCourseInFirestore(course, callback);
+        }
+    }
+
+    private void updateCourseInFirestore(Course course, CourseCallback callback) {
+        firestore.collection("courses")
+                .document(course.getId())
+                .set(course)
+                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
     private void uploadThumbnail(String courseId, Uri thumbnailUri, UploadCallback callback) {
         String fileName = "thumbnails/" + courseId + "_" + UUID.randomUUID().toString();
         StorageReference storageRef = storage.getReference().child(fileName);
@@ -224,6 +320,92 @@ public class CourseRepository {
                 callback.onError(task.getException().getMessage());
             }
         });
+    }
+
+    public void deleteCourse(String courseId, CourseCallback callback) {
+        // First, get the course to find associated files
+        getCourseById(courseId, new SingleCourseCallback() {
+            @Override
+            public void onCourseLoaded(Course course) {
+                // Delete files from storage
+                deleteFileFromUrl(course.getThumbnailUrl(), new CourseCallback() {
+                    @Override
+                    public void onSuccess() {
+                        deleteFileFromUrl(course.getVideoUrl(), new CourseCallback() {
+                            @Override
+                            public void onSuccess() {
+                                // Delete the course document from Firestore
+                                firestore.collection("courses")
+                                        .document(courseId)
+                                        .delete()
+                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            }
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                Log.e(TAG, "Failed to delete video file: " + errorMessage);
+                                // Continue with deleting the document even if file deletion fails
+                                firestore.collection("courses")
+                                        .document(courseId)
+                                        .delete()
+                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        Log.e(TAG, "Failed to delete thumbnail file: " + errorMessage);
+                        // Continue with deleting the video file and document even if thumbnail deletion fails
+                        deleteFileFromUrl(course.getVideoUrl(), new CourseCallback() {
+                            @Override
+                            public void onSuccess() {
+                                firestore.collection("courses")
+                                        .document(courseId)
+                                        .delete()
+                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            }
+
+                            @Override
+                            public void onError(String videoError) {
+                                Log.e(TAG, "Failed to delete video file: " + videoError);
+                                // Continue with deleting the document even if both file deletions fail
+                                firestore.collection("courses")
+                                        .document(courseId)
+                                        .delete()
+                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                            }
+                        });
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
+
+    private void deleteFileFromUrl(String fileUrl, CourseCallback callback) {
+        if (fileUrl == null || fileUrl.isEmpty()) {
+            callback.onSuccess();
+            return;
+        }
+
+        try {
+            StorageReference fileRef = storage.getReferenceFromUrl(fileUrl);
+            fileRef.delete()
+                    .addOnSuccessListener(aVoid -> callback.onSuccess())
+                    .addOnFailureListener(e -> callback.onError(e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            Log.e(TAG, "Invalid file URL: " + fileUrl);
+            callback.onError("Invalid file URL");
+        }
     }
 
     private void uploadVideo(String courseId, Uri videoUri, UploadCallback callback) {
