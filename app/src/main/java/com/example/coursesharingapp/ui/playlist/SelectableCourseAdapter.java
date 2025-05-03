@@ -66,6 +66,11 @@ public class SelectableCourseAdapter extends RecyclerView.Adapter<SelectableCour
         return selectedIds;
     }
 
+    // Get the selected courses map
+    public Map<String, Boolean> getSelectedCourses() {
+        return selectedCourses;
+    }
+
     public class CourseViewHolder extends RecyclerView.ViewHolder {
         private ImageView thumbnailImageView;
         private TextView titleTextView;

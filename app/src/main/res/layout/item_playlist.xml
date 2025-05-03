@@ -21,10 +21,40 @@
             android:maxLines="1"
             android:textSize="18sp"
             android:textStyle="bold"
-            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintEnd_toStartOf="@+id/delete_playlist_button"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             tools:text="Programming Fundamentals Playlist" />
+
+        <ImageButton
+            android:id="@+id/edit_playlist_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="Edit playlist"
+            android:padding="4dp"
+            android:src="@android:drawable/ic_menu_edit"
+            android:visibility="gone"
+            app:layout_constraintTop_toBottomOf="@id/courses_count_tv"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="20dp"
+            app:layout_constraintEnd_toStartOf="@id/delete_playlist_button"
+            app:layout_constraintBottom_toBottomOf="parent" />
+
+        <ImageButton
+            android:id="@+id/delete_playlist_button"
+            android:layout_width="32dp"
+            android:layout_height="32dp"
+            android:background="?android:attr/selectableItemBackground"
+            android:contentDescription="Delete playlist"
+            android:padding="4dp"
+            android:src="@android:drawable/ic_menu_delete"
+            android:visibility="gone"
+            app:tint="@color/red"
+            app:layout_constraintTop_toBottomOf="@id/courses_count_tv"
+            android:layout_marginTop="10dp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent" />
 
         <TextView
             android:id="@+id/playlist_creator_tv"
