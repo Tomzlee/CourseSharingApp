@@ -79,4 +79,9 @@
     <string name="no_description_available">No description available</string>
     <string name="course_count_singular">%1$d course</string>
     <string name="course_count_plural">%1$d courses</string>
+
+
+    <!-- Search Related Strings -->
+    <string name="search_playlists">Search playlists</string>
+    <string name="no_playlists_matching">No playlists matching: %s</string>
 </resources>

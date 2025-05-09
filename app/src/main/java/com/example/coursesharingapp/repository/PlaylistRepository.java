@@ -84,6 +84,76 @@ public class PlaylistRepository {
                 });
     }
 
+    // Search all playlists by title, description, or uploader username
+    public void searchAllPlaylists(String query, PlaylistsCallback callback) {
+        // Get all playlists and filter client-side since Firestore doesn't support 'contains' queries
+        getAllPlaylists(new PlaylistsCallback() {
+            @Override
+            public void onPlaylistsLoaded(List<Playlist> allPlaylists) {
+                List<Playlist> filteredPlaylists = new ArrayList<>();
+                String lowercaseQuery = query.toLowerCase();
+
+                for (Playlist playlist : allPlaylists) {
+                    // Check title
+                    boolean matchesTitle = playlist.getTitle() != null &&
+                            playlist.getTitle().toLowerCase().contains(lowercaseQuery);
+
+                    // Check description
+                    boolean matchesDescription = playlist.getDescription() != null &&
+                            playlist.getDescription().toLowerCase().contains(lowercaseQuery);
+
+                    // Check uploader username
+                    boolean matchesUsername = playlist.getCreatorUsername() != null &&
+                            playlist.getCreatorUsername().toLowerCase().contains(lowercaseQuery);
+
+                    if (matchesTitle || matchesDescription || matchesUsername) {
+                        filteredPlaylists.add(playlist);
+                    }
+                }
+
+                callback.onPlaylistsLoaded(filteredPlaylists);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
+
+    // Search user's playlists by title or description
+    public void searchUserPlaylists(String creatorUid, String query, PlaylistsCallback callback) {
+        // Get user's playlists and filter client-side
+        getPlaylistsByCreator(creatorUid, new PlaylistsCallback() {
+            @Override
+            public void onPlaylistsLoaded(List<Playlist> userPlaylists) {
+                List<Playlist> filteredPlaylists = new ArrayList<>();
+                String lowercaseQuery = query.toLowerCase();
+
+                for (Playlist playlist : userPlaylists) {
+                    // Check title
+                    boolean matchesTitle = playlist.getTitle() != null &&
+                            playlist.getTitle().toLowerCase().contains(lowercaseQuery);
+
+                    // Check description
+                    boolean matchesDescription = playlist.getDescription() != null &&
+                            playlist.getDescription().toLowerCase().contains(lowercaseQuery);
+
+                    if (matchesTitle || matchesDescription) {
+                        filteredPlaylists.add(playlist);
+                    }
+                }
+
+                callback.onPlaylistsLoaded(filteredPlaylists);
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
+
     // Get a single playlist by ID
     public void getPlaylistById(String playlistId, SinglePlaylistCallback callback) {
         firestore.collection("playlists")

@@ -3,14 +3,13 @@ package com.example.coursesharingapp.ui.playlist;
 import android.app.Dialog;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.Window;
+import android.view.inputmethod.EditorInfo;
 import android.widget.Toast;
-import android.util.Log;
-import java.util.HashMap;
-import java.util.Map;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -44,7 +43,6 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         PlaylistAdapter.OnPlaylistDeleteListener, PlaylistAdapter.OnPlaylistEditListener {
     private static final String TAG = "PlaylistDebug";
 
-
     private FragmentPlaylistsBinding binding;
     private PlaylistRepository playlistRepository;
     private UserRepository userRepository;
@@ -53,6 +51,10 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
     private PlaylistAdapter playlistAdapter;
     private List<Playlist> playlistsList;
     private FirebaseUser currentUser;
+
+    // Search state variables
+    private String currentSearchQuery = "";
+    private boolean isSearchActive = false;
 
     private static final int TAB_ALL_PLAYLISTS = 0;
     private static final int TAB_MY_PLAYLISTS = 1;
@@ -87,6 +89,9 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         // Setup tabs
         setupTabs();
 
+        // Setup search functionality
+        setupSearchBar();
+
         // Setup FAB for creating playlists
         binding.createPlaylistFab.setOnClickListener(v -> {
             if (currentUser != null) {
@@ -117,6 +122,10 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             @Override
             public void onTabSelected(TabLayout.Tab tab) {
                 int position = tab.getPosition();
+
+                // Reset search when changing tabs
+                resetSearch();
+
                 if (position == TAB_ALL_PLAYLISTS) {
                     loadAllPlaylists();
                 } else if (position == TAB_MY_PLAYLISTS) {
@@ -141,8 +150,95 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         });
     }
 
+    private void setupSearchBar() {
+        // Set up search functionality using the end icon (search icon)
+        binding.searchLayout.setEndIconOnClickListener(v -> {
+            String query = binding.searchEditText.getText().toString().trim();
+            if (!query.isEmpty()) {
+                performSearch(query);
+            } else {
+                resetSearch();
+            }
+        });
+
+        // Handle search on keyboard action
+        binding.searchEditText.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH ||
+                    (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                String query = binding.searchEditText.getText().toString().trim();
+                if (!query.isEmpty()) {
+                    performSearch(query);
+                } else {
+                    resetSearch();
+                }
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private void performSearch(String query) {
+        Log.d(TAG, "Performing search with query: " + query);
+        currentSearchQuery = query;
+        isSearchActive = true;
+        binding.progressBar.setVisibility(View.VISIBLE);
+
+        int currentTab = binding.tabs.getSelectedTabPosition();
+        if (currentTab == TAB_ALL_PLAYLISTS) {
+            // Search across all playlists
+            playlistRepository.searchAllPlaylists(query, new PlaylistRepository.PlaylistsCallback() {
+                @Override
+                public void onPlaylistsLoaded(List<Playlist> playlists) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    updatePlaylistsList(playlists, false, false);
+                    binding.noPlaylistsTv.setText(playlists.isEmpty() ?
+                            "No playlists matching: " + query :
+                            getString(R.string.no_playlists_available));
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else if (currentTab == TAB_MY_PLAYLISTS && currentUser != null) {
+            // Search only user's playlists
+            playlistRepository.searchUserPlaylists(currentUser.getUid(), query, new PlaylistRepository.PlaylistsCallback() {
+                @Override
+                public void onPlaylistsLoaded(List<Playlist> playlists) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    updatePlaylistsList(playlists, true, true);
+                    binding.noPlaylistsTv.setText(playlists.isEmpty() ?
+                            "No playlists matching: " + query :
+                            getString(R.string.no_playlists_available));
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
+    private void resetSearch() {
+        // Clear search state
+        isSearchActive = false;
+        currentSearchQuery = "";
+        binding.searchEditText.setText("");
+        binding.noPlaylistsTv.setText(R.string.no_playlists_available);
+    }
+
     private void loadAllPlaylists() {
         binding.progressBar.setVisibility(View.VISIBLE);
+
+        // Skip if search is active - let the search handle it
+        if (isSearchActive) {
+            performSearch(currentSearchQuery);
+            return;
+        }
 
         playlistRepository.getAllPlaylists(new PlaylistRepository.PlaylistsCallback() {
             @Override
@@ -161,6 +257,12 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
 
     private void loadMyPlaylists() {
         binding.progressBar.setVisibility(View.VISIBLE);
+
+        // Skip if search is active - let the search handle it
+        if (isSearchActive) {
+            performSearch(currentSearchQuery);
+            return;
+        }
 
         playlistRepository.getPlaylistsByCreator(currentUser.getUid(), new PlaylistRepository.PlaylistsCallback() {
             @Override
@@ -237,6 +339,11 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
                     binding.noPlaylistsTv.setVisibility(View.VISIBLE);
                     binding.playlistsRecyclerView.setVisibility(View.GONE);
                 }
+
+                // If search is active, refresh the search
+                if (isSearchActive) {
+                    performSearch(currentSearchQuery);
+                }
             }
 
             @Override
@@ -244,6 +351,214 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
                 binding.progressBar.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
             }
+        });
+    }
+
+    // Validate input for playlist creation/editing
+    private boolean validateInput(String title, List<String> selectedCourseIds) {
+        if (title.isEmpty()) {
+            Toast.makeText(requireContext(), "Please enter a playlist title", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        if (selectedCourseIds.isEmpty() || selectedCourseIds.size() < 2) {
+            Toast.makeText(requireContext(), "Please select at least two courses", Toast.LENGTH_SHORT).show();
+            return false;
+        }
+
+        return true;
+    }
+
+    private void createPlaylist(String title, String description, List<String> courseIds, Dialog dialog) {
+        binding.progressBar.setVisibility(View.VISIBLE);
+
+        // First get the username from Firestore
+        userRepository.getUserById(currentUser.getUid(), new UserRepository.UserCallback() {
+            @Override
+            public void onUserLoaded(User user) {
+                // Now create the playlist with the username
+                Playlist playlist = new Playlist(title, description, currentUser.getUid(), user.getUsername());
+                playlist.setCourseIds(courseIds);
+
+                playlistRepository.createPlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
+                    @Override
+                    public void onSuccess() {
+                        binding.progressBar.setVisibility(View.GONE);
+                        Toast.makeText(requireContext(), "Playlist created successfully", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+
+                        // Reload the current tab
+                        if (binding.tabs.getSelectedTabPosition() == TAB_ALL_PLAYLISTS) {
+                            loadAllPlaylists();
+                        } else {
+                            loadMyPlaylists();
+                        }
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        binding.progressBar.setVisibility(View.GONE);
+                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                binding.progressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void showManageCoursesDialog(Playlist playlist, int position, Dialog parentDialog,
+                                         List<Course> existingCourses,
+                                         OrderableCourseDisplayAdapter displayAdapter) {
+        Log.d(TAG, "showManageCoursesDialog started");
+
+        Dialog dialog = new Dialog(requireContext());
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        DialogManagePlaylistCoursesBinding dialogBinding =
+                DialogManagePlaylistCoursesBinding.inflate(getLayoutInflater());
+        dialog.setContentView(dialogBinding.getRoot());
+        dialog.setCancelable(true);
+
+        // Set up RecyclerView
+        RecyclerView coursesRecyclerView = dialogBinding.coursesRecyclerView;
+        coursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+
+        // Show progress
+        dialogBinding.progressBar.setVisibility(View.VISIBLE);
+        dialogBinding.instructionsTv.setText("Loading your courses...");
+
+        // Show dialog immediately
+        dialog.show();
+        if (dialog.getWindow() != null) {
+            dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT);
+        }
+
+        // Load current user's courses
+        courseRepository.getCoursesByUploader(currentUser.getUid(), new CourseRepository.CoursesCallback() {
+            @Override
+            public void onCoursesLoaded(List<Course> courses) {
+                Log.d(TAG, "User courses loaded: " + courses.size());
+
+                requireActivity().runOnUiThread(() -> {
+                    dialogBinding.progressBar.setVisibility(View.GONE);
+                    dialogBinding.instructionsTv.setText(
+                            "Check/uncheck courses to add or remove them from the playlist.");
+
+                    if (courses.isEmpty()) {
+                        Toast.makeText(requireContext(),
+                                "You haven't uploaded any courses", Toast.LENGTH_SHORT).show();
+                        dialog.dismiss();
+                        return;
+                    }
+
+                    // Create adapter with all courses
+                    OrderableCourseAdapter adapter = new OrderableCourseAdapter(requireContext(), courses);
+
+                    // Setup drag-and-drop
+                    ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
+                            ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
+
+                        @Override
+                        public boolean onMove(@NonNull RecyclerView recyclerView,
+                                              @NonNull RecyclerView.ViewHolder viewHolder,
+                                              @NonNull RecyclerView.ViewHolder target) {
+                            int fromPosition = viewHolder.getAdapterPosition();
+                            int toPosition = target.getAdapterPosition();
+                            adapter.moveItem(fromPosition, toPosition);
+                            return true;
+                        }
+
+                        @Override
+                        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
+                            // Not using swipe
+                        }
+
+                        @Override
+                        public boolean isLongPressDragEnabled() {
+                            return false;
+                        }
+
+                        @Override
+                        public boolean isItemViewSwipeEnabled() {
+                            return false;
+                        }
+                    };
+
+                    ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
+                    touchHelper.attachToRecyclerView(coursesRecyclerView);
+                    adapter.setTouchHelper(touchHelper);
+
+                    // Pre-select courses already in playlist
+                    adapter.setSelectedCourseIds(playlist.getCourseIds());
+
+                    // Set adapter
+                    coursesRecyclerView.setAdapter(adapter);
+
+                    // Set up save button
+                    dialogBinding.saveButton.setOnClickListener(v -> {
+                        Log.d(TAG, "Save button clicked in manage courses dialog");
+                        List<String> selectedCourseIds = adapter.getSelectedCourseIds();
+                        Log.d(TAG, "Selected course IDs: " + selectedCourseIds.size());
+
+                        // Validate selection
+                        if (selectedCourseIds.isEmpty() || selectedCourseIds.size() < 2) {
+                            Toast.makeText(requireContext(),
+                                    "Please select at least 2 courses", Toast.LENGTH_SHORT).show();
+                            return;
+                        }
+
+                        // Create ordered list of Course objects
+                        Map<String, Course> courseMap = new HashMap<>();
+                        for (Course course : courses) {
+                            courseMap.put(course.getId(), course);
+                        }
+
+                        List<Course> selectedCourses = new ArrayList<>();
+                        for (String id : selectedCourseIds) {
+                            Course course = courseMap.get(id);
+                            if (course != null) {
+                                selectedCourses.add(course);
+                            }
+                        }
+
+                        Log.d(TAG, "Created selected courses list with " + selectedCourses.size() + " items");
+
+                        // Update existing courses list
+                        existingCourses.clear();
+                        existingCourses.addAll(selectedCourses);
+
+                        // Force adapter update
+                        displayAdapter.notifyDataSetChanged();
+
+                        // Update playlist course IDs (not saved to database yet)
+                        playlist.setCourseIds(selectedCourseIds);
+
+                        Log.d(TAG, "Closing manage courses dialog");
+                        dialog.dismiss();
+                    });
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Log.e(TAG, "Error loading user courses: " + errorMessage);
+                requireActivity().runOnUiThread(() -> {
+                    dialogBinding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                    dialog.dismiss();
+                });
+            }
+        });
+
+        // Set up cancel button
+        dialogBinding.cancelButton.setOnClickListener(v -> {
+            Log.d(TAG, "Cancel button clicked in manage courses dialog");
+            dialog.dismiss();
         });
     }
 
@@ -592,6 +907,11 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
                         // Update UI list
                         playlistsList.set(position, playlist);
                         playlistAdapter.notifyItemChanged(position);
+
+                        // Refresh results if in search mode
+                        if (isSearchActive) {
+                            performSearch(currentSearchQuery);
+                        }
                     });
                 }
 
@@ -611,239 +931,6 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             Log.d(TAG, "Cancel button clicked");
             dialog.dismiss();
         });
-    }
-
-    private void showManageCoursesDialog(Playlist playlist, int position, Dialog parentDialog,
-                                         List<Course> existingCourses,
-                                         OrderableCourseDisplayAdapter displayAdapter) {
-        Log.d(TAG, "showManageCoursesDialog started");
-
-        Dialog dialog = new Dialog(requireContext());
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        DialogManagePlaylistCoursesBinding dialogBinding =
-                DialogManagePlaylistCoursesBinding.inflate(getLayoutInflater());
-        dialog.setContentView(dialogBinding.getRoot());
-        dialog.setCancelable(true);
-
-        // Set up RecyclerView
-        RecyclerView coursesRecyclerView = dialogBinding.coursesRecyclerView;
-        coursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
-
-        // Show progress
-        dialogBinding.progressBar.setVisibility(View.VISIBLE);
-        dialogBinding.instructionsTv.setText("Loading your courses...");
-
-        // Show dialog immediately
-        dialog.show();
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT);
-        }
-
-        // Load current user's courses
-        courseRepository.getCoursesByUploader(currentUser.getUid(), new CourseRepository.CoursesCallback() {
-            @Override
-            public void onCoursesLoaded(List<Course> courses) {
-                Log.d(TAG, "User courses loaded: " + courses.size());
-
-                requireActivity().runOnUiThread(() -> {
-                    dialogBinding.progressBar.setVisibility(View.GONE);
-                    dialogBinding.instructionsTv.setText(
-                            "Check/uncheck courses to add or remove them from the playlist.");
-
-                    if (courses.isEmpty()) {
-                        Toast.makeText(requireContext(),
-                                "You haven't uploaded any courses", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-                        return;
-                    }
-
-                    // Create adapter with all courses
-                    OrderableCourseAdapter adapter = new OrderableCourseAdapter(requireContext(), courses);
-
-                    // Setup drag-and-drop
-                    ItemTouchHelper.Callback callback = new ItemTouchHelper.SimpleCallback(
-                            ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) {
-
-                        @Override
-                        public boolean onMove(@NonNull RecyclerView recyclerView,
-                                              @NonNull RecyclerView.ViewHolder viewHolder,
-                                              @NonNull RecyclerView.ViewHolder target) {
-                            int fromPosition = viewHolder.getAdapterPosition();
-                            int toPosition = target.getAdapterPosition();
-                            adapter.moveItem(fromPosition, toPosition);
-                            return true;
-                        }
-
-                        @Override
-                        public void onSwiped(@NonNull RecyclerView.ViewHolder viewHolder, int direction) {
-                            // Not using swipe
-                        }
-
-                        @Override
-                        public boolean isLongPressDragEnabled() {
-                            return false;
-                        }
-
-                        @Override
-                        public boolean isItemViewSwipeEnabled() {
-                            return false;
-                        }
-                    };
-
-                    ItemTouchHelper touchHelper = new ItemTouchHelper(callback);
-                    touchHelper.attachToRecyclerView(coursesRecyclerView);
-                    adapter.setTouchHelper(touchHelper);
-
-                    // Pre-select courses already in playlist
-                    adapter.setSelectedCourseIds(playlist.getCourseIds());
-
-                    // Set adapter
-                    coursesRecyclerView.setAdapter(adapter);
-
-                    // Set up save button
-                    dialogBinding.saveButton.setOnClickListener(v -> {
-                        Log.d(TAG, "Save button clicked in manage courses dialog");
-                        List<String> selectedCourseIds = adapter.getSelectedCourseIds();
-                        Log.d(TAG, "Selected course IDs: " + selectedCourseIds.size());
-
-                        // Validate selection
-                        if (selectedCourseIds.isEmpty() || selectedCourseIds.size() < 2) {
-                            Toast.makeText(requireContext(),
-                                    "Please select at least 2 courses", Toast.LENGTH_SHORT).show();
-                            return;
-                        }
-
-                        // Create ordered list of Course objects
-                        Map<String, Course> courseMap = new HashMap<>();
-                        for (Course course : courses) {
-                            courseMap.put(course.getId(), course);
-                        }
-
-                        List<Course> selectedCourses = new ArrayList<>();
-                        for (String id : selectedCourseIds) {
-                            Course course = courseMap.get(id);
-                            if (course != null) {
-                                selectedCourses.add(course);
-                            }
-                        }
-
-                        Log.d(TAG, "Created selected courses list with " + selectedCourses.size() + " items");
-
-                        // Update existing courses list
-                        existingCourses.clear();
-                        existingCourses.addAll(selectedCourses);
-
-                        // Force adapter update
-                        displayAdapter.notifyDataSetChanged();
-
-                        // Update playlist course IDs (not saved to database yet)
-                        playlist.setCourseIds(selectedCourseIds);
-
-                        Log.d(TAG, "Closing manage courses dialog");
-                        dialog.dismiss();
-                    });
-                });
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                Log.e(TAG, "Error loading user courses: " + errorMessage);
-                requireActivity().runOnUiThread(() -> {
-                    dialogBinding.progressBar.setVisibility(View.GONE);
-                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-                    dialog.dismiss();
-                });
-            }
-        });
-
-        // Set up cancel button
-        dialogBinding.cancelButton.setOnClickListener(v -> {
-            Log.d(TAG, "Cancel button clicked in manage courses dialog");
-            dialog.dismiss();
-        });
-    }
-
-    private void updatePlaylist(Playlist playlist, int position, Dialog dialog, DialogEditPlaylistBinding dialogBinding) {
-        // Show progress bar
-        dialogBinding.progressBar.setVisibility(View.VISIBLE);
-
-        // Update playlist in Firestore
-        playlistRepository.updatePlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
-            @Override
-            public void onSuccess() {
-                dialogBinding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Playlist updated successfully", Toast.LENGTH_SHORT).show();
-                dialog.dismiss();
-
-                // Update the playlist in the list and notify adapter
-                playlistsList.set(position, playlist);
-                playlistAdapter.notifyItemChanged(position);
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                dialogBinding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    private void createPlaylist(String title, String description, List<String> courseIds, Dialog dialog) {
-        binding.progressBar.setVisibility(View.VISIBLE);
-
-        // First get the username from Firestore
-        userRepository.getUserById(currentUser.getUid(), new UserRepository.UserCallback() {
-            @Override
-            public void onUserLoaded(User user) {
-                // Now create the playlist with the username
-                Playlist playlist = new Playlist(title, description, currentUser.getUid(), user.getUsername());
-                playlist.setCourseIds(courseIds);
-
-                playlistRepository.createPlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
-                    @Override
-                    public void onSuccess() {
-                        binding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), "Playlist created successfully", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
-
-                        // Reload the current tab
-                        if (binding.tabs.getSelectedTabPosition() == TAB_ALL_PLAYLISTS) {
-                            loadAllPlaylists();
-                        } else {
-                            loadMyPlaylists();
-                        }
-                    }
-
-                    @Override
-                    public void onError(String errorMessage) {
-                        binding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
-    // Validate input for playlist creation/editing
-    private boolean validateInput(String title, List<String> selectedCourseIds) {
-        if (title.isEmpty()) {
-            Toast.makeText(requireContext(), "Please enter a playlist title", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        if (selectedCourseIds.isEmpty() || selectedCourseIds.size() < 2) {
-            Toast.makeText(requireContext(), "Please select at least two courses", Toast.LENGTH_SHORT).show();
-            return false;
-        }
-
-        return true;
     }
 
     @Override
