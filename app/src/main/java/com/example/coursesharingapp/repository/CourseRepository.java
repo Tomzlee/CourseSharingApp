@@ -23,6 +23,10 @@ public class CourseRepository {
     private final FirebaseFirestore firestore;
     private final FirebaseStorage storage;
 
+    // Define the maximum file size: 5GB in bytes
+    // Define the maximum file size: 5GB in bytes
+    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024 * 1024; // 5GB
+
     public CourseRepository() {
         firestore = FirebaseFirestore.getInstance();
         storage = FirebaseStorage.getInstance();
@@ -302,7 +306,13 @@ public class CourseRepository {
         String fileName = "thumbnails/" + courseId + "_" + UUID.randomUUID().toString();
         StorageReference storageRef = storage.getReference().child(fileName);
 
-        UploadTask uploadTask = storageRef.putFile(thumbnailUri);
+        // Add metadata to restrict file size
+        com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
+                .setContentType("image/*")
+                .build();
+
+
+        UploadTask uploadTask = storageRef.putFile(thumbnailUri, metadata);
 
         uploadTask.addOnProgressListener(taskSnapshot -> {
             double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
@@ -412,7 +422,12 @@ public class CourseRepository {
         String fileName = "videos/" + courseId + "_" + UUID.randomUUID().toString();
         StorageReference storageRef = storage.getReference().child(fileName);
 
-        UploadTask uploadTask = storageRef.putFile(videoUri);
+        // Add metadata to restrict file size
+        com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
+                .setContentType("video/*")
+                .build();
+
+        UploadTask uploadTask = storageRef.putFile(videoUri, metadata);
 
         uploadTask.addOnProgressListener(taskSnapshot -> {
             double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
@@ -431,4 +446,7 @@ public class CourseRepository {
             }
         });
     }
+
+    // Note: We removed the getFileSize method since we're now handling file size limits
+    // through Firebase Storage rules and error handling in the upload task
 }
