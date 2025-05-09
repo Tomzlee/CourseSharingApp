@@ -21,11 +21,23 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
-        android:text="Check/uncheck courses to add or remove them from the playlist:"
-        android:textStyle="italic"
+        android:text="Check/uncheck courses to add or remove them from the playlist."
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/dialog_title_tv" />
+
+    <TextView
+        android:id="@+id/reordering_instructions_tv"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Use the drag handles to reorder selected courses."
+        android:textColor="@android:color/darker_gray"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/instructions_tv" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/courses_recycler_view"
@@ -36,7 +48,7 @@
         app:layout_constraintBottom_toTopOf="@+id/save_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/instructions_tv" />
+        app:layout_constraintTop_toBottomOf="@+id/reordering_instructions_tv" />
 
     <Button
         android:id="@+id/save_button"

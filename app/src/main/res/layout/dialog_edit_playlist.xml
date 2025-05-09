@@ -53,15 +53,28 @@
     </com.google.android.material.textfield.TextInputLayout>
 
     <TextView
-        android:id="@+id/manage_courses_tv"
+        android:id="@+id/current_courses_tv"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_marginTop="16dp"
-        android:text="Manage Courses:"
+        android:text="Current Course Order:"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/playlist_description_layout" />
+
+    <TextView
+        android:id="@+id/drag_instruction_tv"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Drag courses to change the order"
+        android:textColor="@android:color/darker_gray"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/current_courses_tv" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/selected_courses_recycler_view"
@@ -70,7 +83,7 @@
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/manage_courses_tv" />
+        app:layout_constraintTop_toBottomOf="@+id/drag_instruction_tv" />
 
     <Button
         android:id="@+id/manage_courses_button"

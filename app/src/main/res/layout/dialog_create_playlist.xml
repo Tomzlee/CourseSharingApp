@@ -63,6 +63,19 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/playlist_description_layout" />
 
+    <TextView
+        android:id="@+id/ordering_instructions_tv"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="Check courses to include. Drag selected courses to reorder."
+        android:textColor="@android:color/darker_gray"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@+id/select_courses_tv" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/select_courses_recycler_view"
         android:layout_width="0dp"
@@ -70,7 +83,7 @@
         android:layout_marginTop="8dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/select_courses_tv" />
+        app:layout_constraintTop_toBottomOf="@+id/ordering_instructions_tv" />
 
     <TextView
         android:id="@+id/no_courses_tv"

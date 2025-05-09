@@ -20,7 +20,9 @@ import com.example.coursesharingapp.repository.PlaylistRepository;
 import com.example.coursesharingapp.ui.course.CourseAdapter;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class PlaylistDetailFragment extends Fragment implements CourseAdapter.OnCourseClickListener {
 
@@ -80,7 +82,7 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
             public void onPlaylistWithCoursesLoaded(Playlist playlist, List<Course> courses) {
                 binding.progressBar.setVisibility(View.GONE);
                 displayPlaylistDetails(playlist);
-                displayCourses(courses);
+                displayCourses(courses, playlist);
             }
 
             @Override
@@ -107,7 +109,7 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
         }
     }
 
-    private void displayCourses(List<Course> courses) {
+    private void displayCourses(List<Course> courses, Playlist playlist) {
         if (courses.isEmpty()) {
             binding.noCoursesTv.setVisibility(View.VISIBLE);
             binding.playlistCoursesRecyclerView.setVisibility(View.GONE);
@@ -115,8 +117,24 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
             binding.noCoursesTv.setVisibility(View.GONE);
             binding.playlistCoursesRecyclerView.setVisibility(View.VISIBLE);
 
+            // Create a map for quick lookups of courses by id
+            Map<String, Course> courseMap = new HashMap<>();
+            for (Course course : courses) {
+                courseMap.put(course.getId(), course);
+            }
+
+            // Create an ordered list based on the playlist's courseIds order
+            List<Course> orderedCourses = new ArrayList<>();
+            for (String courseId : playlist.getCourseIds()) {
+                Course course = courseMap.get(courseId);
+                if (course != null) {
+                    orderedCourses.add(course);
+                }
+            }
+
+            // Update the adapter with ordered courses
             coursesList.clear();
-            coursesList.addAll(courses);
+            coursesList.addAll(orderedCourses);
             courseAdapter.notifyDataSetChanged();
         }
     }
