@@ -35,7 +35,8 @@
                 android:id="@+id/course_title_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Course Title"
+                android:maxLength="100"
+                android:hint="Course Title (Max. 100 characters)"
                 android:inputType="text" />
         </com.google.android.material.textfield.TextInputLayout>
 
@@ -73,7 +74,8 @@
                 android:id="@+id/short_description_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Short Description (displayed in list)"
+                app:counterMaxLength="100"
+                android:hint="Short Description (Max. 100 characters)"
                 android:inputType="textMultiLine"
                 android:maxLines="3" />
         </com.google.android.material.textfield.TextInputLayout>
@@ -91,7 +93,8 @@
                 android:id="@+id/long_description_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Long Description (displayed in details)"
+                app:counterMaxLength="1000"
+                android:hint="Long Description (Max. 1000 characters)"
                 android:inputType="textMultiLine"
                 android:minLines="4" />
         </com.google.android.material.textfield.TextInputLayout>

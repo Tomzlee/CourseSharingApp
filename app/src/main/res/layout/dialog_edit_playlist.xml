@@ -29,7 +29,8 @@
             android:id="@+id/playlist_title_et"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Playlist Title"
+            android:hint="Playlist Title (Max. 100 characters)"
+            android:maxLength="100"
             android:inputType="text"
             android:maxLines="1" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -47,7 +48,8 @@
             android:id="@+id/playlist_description_et"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Description (optional)"
+            android:maxLength="1000"
+            android:hint="Description (Optional, Max. 1000 characters)"
             android:inputType="textMultiLine"
             android:maxLines="3" />
     </com.google.android.material.textfield.TextInputLayout>
