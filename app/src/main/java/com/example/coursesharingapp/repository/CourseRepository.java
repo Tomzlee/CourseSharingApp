@@ -2,7 +2,6 @@ package com.example.coursesharingapp.repository;
 
 import android.net.Uri;
 import android.util.Log;
-import androidx.annotation.NonNull;
 
 import com.example.coursesharingapp.model.Course;
 import com.google.firebase.firestore.DocumentReference;
@@ -116,7 +115,8 @@ public class CourseRepository {
     }
 
     // Search courses by name (title)
-    public void searchCoursesByTitle(String query, CoursesCallback callback) {
+    // Search courses by title, description, or uploader username
+    public void searchCourses(String query, CoursesCallback callback) {
         // Get all courses and filter client-side since Firestore doesn't support 'contains' queries
         getAllCourses(new CoursesCallback() {
             @Override
@@ -125,7 +125,12 @@ public class CourseRepository {
                 String lowercaseQuery = query.toLowerCase();
 
                 for (Course course : allCourses) {
-                    if (course.getTitle().toLowerCase().contains(lowercaseQuery)) {
+                    // Check if the query matches title, description, or uploader username
+                    if (course.getTitle().toLowerCase().contains(lowercaseQuery) ||
+                            (course.getShortDescription() != null &&
+                                    course.getShortDescription().toLowerCase().contains(lowercaseQuery)) ||
+                            (course.getUploaderUsername() != null &&
+                                    course.getUploaderUsername().toLowerCase().contains(lowercaseQuery))) {
                         filteredCourses.add(course);
                     }
                 }

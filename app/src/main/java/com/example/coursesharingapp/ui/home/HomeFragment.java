@@ -172,7 +172,7 @@ public class HomeFragment extends Fragment implements CourseAdapter.OnCourseClic
     private void performSearch(String query) {
         currentFilter = FILTER_BY_SEARCH;
         currentSearchQuery = query;
-        binding.filterToolbar.setTitle("Search: " + query);
+        binding.filterToolbar.setTitle("Searching: " + query);
         // Uncheck all category chips when searching
         binding.categoryChipGroup.clearCheck();
         searchCourses(query);
@@ -243,7 +243,7 @@ public class HomeFragment extends Fragment implements CourseAdapter.OnCourseClic
     private void searchCourses(String query) {
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        courseRepository.searchCoursesByTitle(query, new CourseRepository.CoursesCallback() {
+        courseRepository.searchCourses(query, new CourseRepository.CoursesCallback() {
             @Override
             public void onCoursesLoaded(List<Course> courses) {
                 binding.progressBar.setVisibility(View.GONE);
@@ -270,8 +270,8 @@ public class HomeFragment extends Fragment implements CourseAdapter.OnCourseClic
             } else if (currentFilter == FILTER_BY_AUTHOR) {
                 binding.noCoursesTv.setText("You haven't uploaded any courses yet");
             } else if (currentFilter == FILTER_BY_SEARCH) {
-                binding.noCoursesTv.setText("No courses matching: " + currentSearchQuery);
-            }
+            binding.noCoursesTv.setText("No courses or instructors matching: " + currentSearchQuery);
+        }
             binding.coursesRecyclerView.setVisibility(View.GONE);
         } else {
             binding.noCoursesTv.setVisibility(View.GONE);
