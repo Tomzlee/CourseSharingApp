@@ -157,7 +157,16 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             if (!query.isEmpty()) {
                 performSearch(query);
             } else {
+                // If search bar is empty, reset search and show all playlists
                 resetSearch();
+
+                // Refresh the current tab view
+                int currentTab = binding.tabs.getSelectedTabPosition();
+                if (currentTab == TAB_ALL_PLAYLISTS) {
+                    loadAllPlaylists();
+                } else if (currentTab == TAB_MY_PLAYLISTS && currentUser != null) {
+                    loadMyPlaylists();
+                }
             }
         });
 
@@ -169,7 +178,16 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
                 if (!query.isEmpty()) {
                     performSearch(query);
                 } else {
+                    // If search bar is empty, reset search and show all playlists
                     resetSearch();
+
+                    // Refresh the current tab view
+                    int currentTab = binding.tabs.getSelectedTabPosition();
+                    if (currentTab == TAB_ALL_PLAYLISTS) {
+                        loadAllPlaylists();
+                    } else if (currentTab == TAB_MY_PLAYLISTS && currentUser != null) {
+                        loadMyPlaylists();
+                    }
                 }
                 return true;
             }

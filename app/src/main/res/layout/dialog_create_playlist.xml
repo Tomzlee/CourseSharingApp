@@ -48,8 +48,8 @@
             android:id="@+id/playlist_description_et"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:maxLength="1000"
-            android:hint="Description (Optional, Max. 1000 characters)"
+            android:maxLength="200"
+            android:hint="Description (Optional, Max. 200 characters)"
             android:inputType="textMultiLine"
             android:maxLines="3" />
     </com.google.android.material.textfield.TextInputLayout>
@@ -92,11 +92,12 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="You haven't uploaded any courses yet"
+        android:textColor="@color/red"
         android:visibility="gone"
-        app:layout_constraintBottom_toBottomOf="@+id/select_courses_recycler_view"
+        app:layout_constraintBottom_toTopOf="@+id/create_playlist_button"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@+id/select_courses_recycler_view" />
+        />
 
     <Button
         android:id="@+id/create_playlist_button"

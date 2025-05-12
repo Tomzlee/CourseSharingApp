@@ -13,11 +13,18 @@ import com.example.coursesharingapp.databinding.ActivityMainBinding;
 import com.example.coursesharingapp.repository.AuthRepository;
 import com.google.firebase.auth.FirebaseUser;
 
+import java.util.ArrayList;
+
 public class MainActivity extends AppCompatActivity {
 
     private ActivityMainBinding binding;
     private NavController navController;
     private AuthRepository authRepository;
+    private int currentTabId = R.id.homeFragment;
+    private int previousTabId = R.id.homeFragment;
+
+    // Keep track of tab navigation history
+    private final ArrayList<Integer> tabHistory = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -28,6 +35,9 @@ public class MainActivity extends AppCompatActivity {
 
         // Initialize Firebase Auth
         authRepository = new AuthRepository();
+
+        // Initialize tab history with home as the starting point
+        tabHistory.add(R.id.homeFragment);
 
         // Setup Navigation
         NavHostFragment navHostFragment = (NavHostFragment) getSupportFragmentManager()
@@ -44,9 +54,19 @@ public class MainActivity extends AppCompatActivity {
                 handleDestinationChange(destination);
             });
 
-            // Make bottom navigation reselection just select the item
-            binding.bottomNavigation.setOnItemReselectedListener(item -> {
-                // Do nothing on reselection - prevents recreating the fragment
+            // Listen for bottom navigation selection
+            binding.bottomNavigation.setOnItemSelectedListener(item -> {
+                int itemId = item.getItemId();
+
+                // Update tab history when selecting a new tab
+                if (tabHistory.isEmpty() || tabHistory.get(tabHistory.size() - 1) != itemId) {
+                    // Remove this tab from history if it exists (to avoid duplicates)
+                    tabHistory.remove((Integer) itemId);
+                    // Add to history
+                    tabHistory.add(itemId);
+                }
+
+                return NavigationUI.onNavDestinationSelected(item, navController);
             });
         }
 
@@ -78,13 +98,24 @@ public class MainActivity extends AppCompatActivity {
                 finish();
                 return;
             } else if (destinationId == R.id.profileFragment || destinationId == R.id.playlistsFragment) {
-                // Navigate to home fragment when back is pressed from profile or playlists
-                // AND select the home item in the bottom navigation
-                binding.bottomNavigation.setSelectedItemId(R.id.homeFragment);
-                return;
+                // Navigate to the previous tab in history
+                if (tabHistory.size() > 1) {
+                    // Remove current tab from history
+                    tabHistory.remove(tabHistory.size() - 1);
+                    // Get the previous tab
+                    int previousTabId = tabHistory.get(tabHistory.size() - 1);
+                    // Navigate to previous tab
+                    binding.bottomNavigation.setSelectedItemId(previousTabId);
+                    return;
+                } else {
+                    // If no history, default to home
+                    binding.bottomNavigation.setSelectedItemId(R.id.homeFragment);
+                    return;
+                }
             }
         }
 
+        // For other fragments (course details, etc.), use normal back navigation
         super.onBackPressed();
     }
 

@@ -152,6 +152,16 @@ public class HomeFragment extends Fragment implements CourseAdapter.OnCourseClic
             String query = binding.searchEditText.getText().toString().trim();
             if (!query.isEmpty()) {
                 performSearch(query);
+            } else {
+                // If search bar is empty, reset to showing all courses
+                currentFilter = FILTER_ALL;
+                binding.filterToolbar.setTitle("All Courses");
+                // Uncheck all category chips
+                binding.categoryChipGroup.clearCheck();
+                // Check the "All" chip
+                binding.chipAll.setChecked(true);
+                // Load all courses
+                loadCourses();
             }
         });
 
@@ -162,6 +172,16 @@ public class HomeFragment extends Fragment implements CourseAdapter.OnCourseClic
                 String query = binding.searchEditText.getText().toString().trim();
                 if (!query.isEmpty()) {
                     performSearch(query);
+                } else {
+                    // If search bar is empty, reset to showing all courses
+                    currentFilter = FILTER_ALL;
+                    binding.filterToolbar.setTitle("All Courses");
+                    // Uncheck all category chips
+                    binding.categoryChipGroup.clearCheck();
+                    // Check the "All" chip
+                    binding.chipAll.setChecked(true);
+                    // Load all courses
+                    loadCourses();
                 }
                 return true;
             }
