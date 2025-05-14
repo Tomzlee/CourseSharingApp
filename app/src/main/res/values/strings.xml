@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Course Sharing App</string>
 
@@ -24,6 +25,13 @@
     <string name="no_search_results">No courses matching your search</string>
     <string name="no_uploaded_courses">You haven\'t uploaded any courses yet</string>
     <string name="category">Category:</string>
+    <string name="manage_your_courses">Manage the courses you\'ve uploaded</string>
+    <string name="delete_course">Delete Course</string>
+    <string name="confirm_delete_course">Are you sure you want to delete this course?</string>
+    <string name="delete">Delete</string>
+    <string name="cancel">Cancel</string>
+    <string name="course_deleted_successfully">Course deleted successfully</string>
+    <string name="edit_course">Edit Course</string>
 
     <!-- Course Categories -->
     <string name="category_art">Art</string>
@@ -70,7 +78,6 @@
     <string name="description_optional">Description (optional)</string>
     <string name="select_your_courses_to_add">Select your courses to add:</string>
     <string name="you_havent_uploaded_any_courses_yet">You haven\'t uploaded any courses yet</string>
-    <string name="cancel">Cancel</string>
     <string name="please_enter_a_playlist_title">Please enter a playlist title</string>
     <string name="please_select_at_least_one_course">Please select at least one course</string>
     <string name="playlist_created_successfully">Playlist created successfully</string>
@@ -79,7 +86,6 @@
     <string name="no_description_available">No description available</string>
     <string name="course_count_singular">%1$d course</string>
     <string name="course_count_plural">%1$d courses</string>
-
 
     <!-- Search Related Strings -->
     <string name="search_playlists">Search playlists</string>
