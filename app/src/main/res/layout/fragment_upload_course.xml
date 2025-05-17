@@ -15,7 +15,7 @@
             android:id="@+id/upload_title_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Upload New Course"
+            android:text="@string/upload_new_course"
             android:textSize="24sp"
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
@@ -61,6 +61,39 @@
             app:layout_constraintStart_toEndOf="@+id/category_label"
             app:layout_constraintTop_toBottomOf="@+id/course_title_et_layout" />
 
+        <!-- Private Course Switch -->
+        <TextView
+            android:id="@+id/private_course_label"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Private Course:"
+            android:textSize="16sp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/category_spinner" />
+
+        <com.google.android.material.switchmaterial.SwitchMaterial
+            android:id="@+id/private_course_switch"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            app:layout_constraintStart_toEndOf="@+id/private_course_label"
+            app:layout_constraintBottom_toBottomOf="@+id/private_course_label"
+            app:layout_constraintTop_toTopOf="@+id/private_course_label" />
+
+        <TextView
+            android:id="@+id/private_course_info_tv"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="8dp"
+            android:layout_marginTop="4dp"
+            android:text="Private courses are only accessible with a 9-digit access code that will be generated automatically."
+            android:textSize="12sp"
+            android:textStyle="italic"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/private_course_label" />
+
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/short_description_et_layout"
             android:layout_width="match_parent"
@@ -68,13 +101,13 @@
             android:layout_marginTop="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/category_spinner">
+            app:layout_constraintTop_toBottomOf="@+id/private_course_info_tv">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/short_description_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:counterMaxLength="100"
+                android:maxLength="100"
                 android:hint="Short Description (Max. 100 characters)"
                 android:inputType="textMultiLine"
                 android:maxLines="3" />
@@ -93,7 +126,7 @@
                 android:id="@+id/long_description_et"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:counterMaxLength="1000"
+                android:maxLength="1000"
                 android:hint="Long Description (Max. 1000 characters)"
                 android:inputType="textMultiLine"
                 android:minLines="4" />

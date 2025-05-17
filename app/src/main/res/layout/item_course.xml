@@ -12,16 +12,37 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content">
 
-        <ImageView
-            android:id="@+id/course_thumbnail_iv"
+        <FrameLayout
+            android:id="@+id/thumbnail_container"
             android:layout_width="match_parent"
             android:layout_height="180dp"
-            android:contentDescription="Course thumbnail"
-            android:scaleType="centerCrop"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toTopOf="parent"
-            tools:src="@tools:sample/backgrounds/scenic" />
+            app:layout_constraintTop_toTopOf="parent">
+
+            <ImageView
+                android:id="@+id/course_thumbnail_iv"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:contentDescription="Course thumbnail"
+                android:scaleType="centerCrop"
+                tools:src="@tools:sample/backgrounds/scenic" />
+
+            <!-- Lock Icon for Private Courses -->
+            <ImageView
+                android:id="@+id/private_course_icon"
+                android:layout_width="32dp"
+                android:layout_height="32dp"
+                android:layout_gravity="start|top"
+                android:layout_margin="8dp"
+                android:background="@drawable/bg_lock_icon"
+                android:contentDescription="Private Course"
+                android:padding="4dp"
+                android:src="@android:drawable/ic_lock_lock"
+                android:visibility="gone"
+                app:tint="@android:color/white" />
+
+        </FrameLayout>
 
         <!-- Category Chip -->
         <com.google.android.material.chip.Chip
@@ -47,8 +68,48 @@
             android:textStyle="bold"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/course_thumbnail_iv"
+            app:layout_constraintTop_toBottomOf="@+id/thumbnail_container"
             tools:text="Course Title" />
+
+        <!-- Access Code Section (For My Courses only) -->
+        <LinearLayout
+            android:id="@+id/access_code_container"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="16dp"
+            android:layout_marginTop="8dp"
+            android:layout_marginEnd="16dp"
+            android:background="@drawable/bg_access_code"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="8dp"
+            android:visibility="gone"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/course_title_tv">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Access Code: "
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/access_code_tv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:textIsSelectable="true"
+                tools:text="123456789" />
+
+            <ImageButton
+                android:id="@+id/copy_code_button"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:contentDescription="Copy Access Code"
+                android:src="@android:drawable/ic_menu_set_as" />
+        </LinearLayout>
 
         <TextView
             android:id="@+id/course_description_tv"
@@ -61,7 +122,7 @@
             android:maxLines="3"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/course_title_tv"
+            app:layout_constraintTop_toBottomOf="@+id/access_code_container"
             tools:text="Course description text goes here. This is a short description of what the course is about." />
 
         <LinearLayout

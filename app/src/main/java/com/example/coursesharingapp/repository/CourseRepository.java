@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.example.coursesharingapp.model.Course;
+import com.example.coursesharingapp.util.AccessCodeUtil;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -22,7 +23,6 @@ public class CourseRepository {
     private final FirebaseFirestore firestore;
     private final FirebaseStorage storage;
 
-    // Define the maximum file size: 5GB in bytes
     // Define the maximum file size: 5GB in bytes
     private static final long MAX_FILE_SIZE = 5L * 1024 * 1024 * 1024; // 5GB
 
@@ -52,10 +52,9 @@ public class CourseRepository {
         void onError(String errorMessage);
     }
 
-    // Get all courses (no filter)
+    // Get all public courses (no filter)
     public void getAllCourses(CoursesCallback callback) {
         firestore.collection("courses")
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -63,7 +62,11 @@ public class CourseRepository {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Course course = document.toObject(Course.class);
                             course.setId(document.getId());
-                            courses.add(course);
+
+                            // Only add public courses to the list
+                            if (!course.isPrivate()) {
+                                courses.add(course);
+                            }
                         }
                         callback.onCoursesLoaded(courses);
                     } else {
@@ -72,11 +75,10 @@ public class CourseRepository {
                 });
     }
 
-    // Get courses by category
+    // Get courses by category (public only)
     public void getCoursesByCategory(String category, CoursesCallback callback) {
         firestore.collection("courses")
                 .whereEqualTo("category", category)
-                .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
                     if (task.isSuccessful()) {
@@ -84,7 +86,11 @@ public class CourseRepository {
                         for (QueryDocumentSnapshot document : task.getResult()) {
                             Course course = document.toObject(Course.class);
                             course.setId(document.getId());
-                            courses.add(course);
+
+                            // Only add public courses to the list
+                            if (!course.isPrivate()) {
+                                courses.add(course);
+                            }
                         }
                         callback.onCoursesLoaded(courses);
                     } else {
@@ -93,7 +99,7 @@ public class CourseRepository {
                 });
     }
 
-    // Get courses by uploader (my courses)
+    // Get courses by uploader (my courses) - both public and private
     public void getCoursesByUploader(String uploaderUid, CoursesCallback callback) {
         firestore.collection("courses")
                 .whereEqualTo("uploaderUid", uploaderUid)
@@ -114,35 +120,65 @@ public class CourseRepository {
                 });
     }
 
-    // Search courses by name (title)
-    // Search courses by title, description, or uploader username
-    public void searchCourses(String query, CoursesCallback callback) {
-        // Get all courses and filter client-side since Firestore doesn't support 'contains' queries
-        getAllCourses(new CoursesCallback() {
-            @Override
-            public void onCoursesLoaded(List<Course> allCourses) {
-                List<Course> filteredCourses = new ArrayList<>();
-                String lowercaseQuery = query.toLowerCase();
+    // Get a private course by access code
+    public void getCourseByAccessCode(String accessCode, SingleCourseCallback callback) {
+        firestore.collection("courses")
+                .whereEqualTo("accessCode", accessCode)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Course course = document.toObject(Course.class);
+                            course.setId(document.getId());
 
-                for (Course course : allCourses) {
-                    // Check if the query matches title, description, or uploader username
-                    if (course.getTitle().toLowerCase().contains(lowercaseQuery) ||
-                            (course.getShortDescription() != null &&
-                                    course.getShortDescription().toLowerCase().contains(lowercaseQuery)) ||
-                            (course.getUploaderUsername() != null &&
-                                    course.getUploaderUsername().toLowerCase().contains(lowercaseQuery))) {
-                        filteredCourses.add(course);
+                            // Verify this is a private course with matching access code
+                            if (course.isPrivate() && accessCode.equals(course.getAccessCode())) {
+                                callback.onCourseLoaded(course);
+                                return;
+                            }
+                        }
+                        callback.onError("Private course not found or invalid access code");
+                    } else {
+                        callback.onError(task.getException().getMessage());
                     }
-                }
+                });
+    }
 
-                callback.onCoursesLoaded(filteredCourses);
-            }
+    // Search courses by title, description, or uploader username (public only)
+    public void searchCourses(String query, CoursesCallback callback) {
+        // Get all courses and filter client-side
+        firestore.collection("courses")
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        List<Course> filteredCourses = new ArrayList<>();
+                        String lowercaseQuery = query.toLowerCase();
 
-            @Override
-            public void onError(String errorMessage) {
-                callback.onError(errorMessage);
-            }
-        });
+                        for (QueryDocumentSnapshot document : task.getResult()) {
+                            Course course = document.toObject(Course.class);
+                            course.setId(document.getId());
+
+                            // Skip private courses
+                            if (course.isPrivate()) {
+                                continue;
+                            }
+
+                            // Check if the query matches title, description, or uploader username
+                            if ((course.getTitle() != null &&
+                                    course.getTitle().toLowerCase().contains(lowercaseQuery)) ||
+                                    (course.getShortDescription() != null &&
+                                            course.getShortDescription().toLowerCase().contains(lowercaseQuery)) ||
+                                    (course.getUploaderUsername() != null &&
+                                            course.getUploaderUsername().toLowerCase().contains(lowercaseQuery))) {
+                                filteredCourses.add(course);
+                            }
+                        }
+
+                        callback.onCoursesLoaded(filteredCourses);
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
     }
 
     public void getCourseById(String courseId, SingleCourseCallback callback) {
@@ -169,6 +205,12 @@ public class CourseRepository {
         // First, add the course to Firestore
         DocumentReference courseRef = firestore.collection("courses").document();
         course.setId(courseRef.getId());
+
+        // Generate a unique access code if the course is private
+        if (course.isPrivate()) {
+            String accessCode = AccessCodeUtil.generateUniqueAccessCode();
+            course.setAccessCode(accessCode);
+        }
 
         // Upload thumbnail and video
         uploadThumbnail(course.getId(), thumbnailUri, new UploadCallback() {
@@ -216,6 +258,12 @@ public class CourseRepository {
         if (course.getId() == null || course.getId().isEmpty()) {
             callback.onError("Course ID is required for editing");
             return;
+        }
+
+        // If the course is being set to private and doesn't have an access code yet
+        if (course.isPrivate() && (course.getAccessCode() == null || course.getAccessCode().isEmpty())) {
+            String accessCode = AccessCodeUtil.generateUniqueAccessCode();
+            course.setAccessCode(accessCode);
         }
 
         // Check if there are new files to upload
@@ -451,7 +499,4 @@ public class CourseRepository {
             }
         });
     }
-
-    // Note: We removed the getFileSize method since we're now handling file size limits
-    // through Firebase Storage rules and error handling in the upload task
 }

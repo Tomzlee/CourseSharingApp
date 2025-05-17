@@ -92,8 +92,9 @@ public class ProfileFragment extends Fragment implements
     }
 
     private void setupRecyclerView() {
-        // Use constructor with edit button enabled
-        courseAdapter = new CourseAdapter(requireContext(), userCoursesList, this, this, this, true, true);
+        // Use constructor with showAccessCode=true
+        courseAdapter = new CourseAdapter(requireContext(), userCoursesList,
+                this, this, this, true, true, true);
         binding.userCoursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.userCoursesRecyclerView.setAdapter(courseAdapter);
     }
@@ -122,7 +123,7 @@ public class ProfileFragment extends Fragment implements
     private void loadUserCourses(String userId) {
         binding.coursesProgressBar.setVisibility(View.VISIBLE);
 
-        courseRepository.getAllCourses(new CourseRepository.CoursesCallback() {
+        courseRepository.getCoursesByUploader(userId, new CourseRepository.CoursesCallback() {
             @Override
             public void onCoursesLoaded(List<Course> courses) {
                 binding.coursesProgressBar.setVisibility(View.GONE);
@@ -137,8 +138,10 @@ public class ProfileFragment extends Fragment implements
 
                 if (filteredCourses.isEmpty()) {
                     binding.noUserCoursesTv.setVisibility(View.VISIBLE);
+                    binding.userCoursesRecyclerView.setVisibility(View.GONE);
                 } else {
                     binding.noUserCoursesTv.setVisibility(View.GONE);
+                    binding.userCoursesRecyclerView.setVisibility(View.VISIBLE);
                     userCoursesList.clear();
                     userCoursesList.addAll(filteredCourses);
                     courseAdapter.notifyDataSetChanged();
@@ -194,9 +197,10 @@ public class ProfileFragment extends Fragment implements
                 userCoursesList.remove(position);
                 courseAdapter.notifyItemRemoved(position);
 
-                // Check if list is empty
+                // Check if list is now empty
                 if (userCoursesList.isEmpty()) {
                     binding.noUserCoursesTv.setVisibility(View.VISIBLE);
+                    binding.userCoursesRecyclerView.setVisibility(View.GONE);
                 }
             }
 

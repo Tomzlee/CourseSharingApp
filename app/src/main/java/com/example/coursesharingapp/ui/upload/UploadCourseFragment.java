@@ -47,6 +47,7 @@ public class UploadCourseFragment extends Fragment {
     private FirebaseUser currentUser;
     private String username;
     private String selectedCategory;
+    private boolean isPrivateCourse = false;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -80,6 +81,9 @@ public class UploadCourseFragment extends Fragment {
         // Setup category spinner
         setupCategorySpinner();
 
+        // Setup private course switch
+        setupPrivateCourseSwitch();
+
         // Setup click listeners
         binding.selectThumbnailButton.setOnClickListener(v -> selectThumbnail());
         binding.selectVideoButton.setOnClickListener(v -> selectVideo());
@@ -110,6 +114,12 @@ public class UploadCourseFragment extends Fragment {
             public void onNothingSelected(android.widget.AdapterView<?> parent) {
                 // Keep default selection
             }
+        });
+    }
+
+    private void setupPrivateCourseSwitch() {
+        binding.privateCourseSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            isPrivateCourse = isChecked;
         });
     }
 
@@ -394,6 +404,9 @@ public class UploadCourseFragment extends Fragment {
         Course course = new Course(title, shortDescription, longDescription,
                 currentUser.getUid(), username, selectedCategory);
 
+        // Set private flag
+        course.setPrivate(isPrivateCourse);
+
         // Display file sizes in progress message
         try {
             StringBuilder uploadMessage = new StringBuilder("Uploading: ");
@@ -416,7 +429,13 @@ public class UploadCourseFragment extends Fragment {
             @Override
             public void onSuccess() {
                 binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Course uploaded successfully", Toast.LENGTH_SHORT).show();
+
+                String successMessage = course.isPrivate() ?
+                        "Course uploaded successfully. Access code: " + course.getAccessCode() :
+                        "Course uploaded successfully";
+
+                Toast.makeText(requireContext(), successMessage, Toast.LENGTH_LONG).show();
+
                 Navigation.findNavController(requireView()).navigate(R.id.homeFragment);
             }
 

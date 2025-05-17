@@ -1,6 +1,7 @@
 package com.example.coursesharingapp.model;
 
 import com.google.firebase.Timestamp;
+import com.google.firebase.firestore.PropertyName;
 import java.util.Date;
 
 public class Course {
@@ -12,8 +13,14 @@ public class Course {
     private String uploaderUsername;
     private String thumbnailUrl;
     private String videoUrl;
-    private String category; // New field for category
+    private String category; // Category field
     private Object createdAt; // Can be either Timestamp or Long
+
+    // We need to keep the field name as isPrivate since "private" is a reserved word in Java
+    // But we use @PropertyName to tell Firestore to store it as "private"
+    private boolean isPrivate;
+
+    private String accessCode; // 9-digit unique access code for private courses
 
     // Category constants
     public static final String CATEGORY_ART = "Art";
@@ -29,6 +36,7 @@ public class Course {
 
     public Course() {
         // Required empty constructor for Firestore
+        this.isPrivate = false;
     }
 
     public Course(String title, String shortDescription, String longDescription,
@@ -40,6 +48,7 @@ public class Course {
         this.uploaderUsername = uploaderUsername;
         this.category = category;
         this.createdAt = Timestamp.now();
+        this.isPrivate = false;
     }
 
     // Getters and Setters
@@ -142,5 +151,25 @@ public class Course {
             return new Date((Long) createdAt);
         }
         return new Date();
+    }
+
+    // Private course getters and setters
+    // Use PropertyName to map the field to "private" in Firestore
+    @PropertyName("private")
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    @PropertyName("private")
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+    }
+
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
     }
 }
