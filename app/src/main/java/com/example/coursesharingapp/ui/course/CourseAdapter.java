@@ -1,12 +1,9 @@
 package com.example.coursesharingapp.ui.course;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -28,12 +25,11 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
     private OnCourseEditListener editListener;
     private boolean showDeleteButton;
     private boolean showEditButton;
-    private boolean showAccessCode;
 
-    // Constructor with delete and edit functionality and access code
+    // Constructor with delete and edit functionality
     public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
                          OnCourseDeleteListener deleteListener, OnCourseEditListener editListener,
-                         boolean showDeleteButton, boolean showEditButton, boolean showAccessCode) {
+                         boolean showDeleteButton, boolean showEditButton) {
         this.context = context;
         this.courses = courses;
         this.clickListener = clickListener;
@@ -41,25 +37,17 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         this.editListener = editListener;
         this.showDeleteButton = showDeleteButton;
         this.showEditButton = showEditButton;
-        this.showAccessCode = showAccessCode;
     }
 
     // Constructor with delete button parameter
     public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
                          OnCourseDeleteListener deleteListener, boolean showDeleteButton) {
-        this(context, courses, clickListener, deleteListener, null, showDeleteButton, false, false);
-    }
-
-    // Constructor with edit and delete
-    public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
-                         OnCourseDeleteListener deleteListener, OnCourseEditListener editListener,
-                         boolean showDeleteButton, boolean showEditButton) {
-        this(context, courses, clickListener, deleteListener, editListener, showDeleteButton, showEditButton, false);
+        this(context, courses, clickListener, deleteListener, null, showDeleteButton, false);
     }
 
     // Original constructor for backward compatibility
     public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener) {
-        this(context, courses, clickListener, null, null, false, false, false);
+        this(context, courses, clickListener, null, null, false, false);
     }
 
     @NonNull
@@ -117,29 +105,6 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
                         .into(binding.courseThumbnailIv);
             } else {
                 binding.courseThumbnailIv.setImageResource(R.drawable.ic_placeholder_thumbnail);
-            }
-
-            // Show/hide private course icon
-            if (course.isPrivate()) {
-                binding.privateCourseIcon.setVisibility(View.VISIBLE);
-            } else {
-                binding.privateCourseIcon.setVisibility(View.GONE);
-            }
-
-            // Show/hide access code for private courses (for My Courses view)
-            if (showAccessCode && course.isPrivate() && course.getAccessCode() != null) {
-                binding.accessCodeContainer.setVisibility(View.VISIBLE);
-                binding.accessCodeTv.setText(course.getAccessCode());
-
-                // Setup copy button
-                binding.copyCodeButton.setOnClickListener(v -> {
-                    ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
-                    ClipData clip = ClipData.newPlainText("Access Code", course.getAccessCode());
-                    clipboard.setPrimaryClip(clip);
-                    Toast.makeText(context, "Access code copied to clipboard", Toast.LENGTH_SHORT).show();
-                });
-            } else {
-                binding.accessCodeContainer.setVisibility(View.GONE);
             }
 
             // Set click listener

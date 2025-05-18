@@ -72,9 +72,8 @@ public class MyCoursesFragment extends Fragment implements
     }
 
     private void setupRecyclerView() {
-        // Use the constructor with showAccessCode=true
         courseAdapter = new CourseAdapter(requireContext(), courseList,
-                this, this, this, true, true, true);
+                this, this, this, true, true);
         binding.coursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.coursesRecyclerView.setAdapter(courseAdapter);
     }

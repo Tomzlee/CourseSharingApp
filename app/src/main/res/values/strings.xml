@@ -33,21 +33,6 @@
     <string name="course_deleted_successfully">Course deleted successfully</string>
     <string name="edit_course">Edit Course</string>
 
-    <!-- Private Courses -->
-    <string name="private_course">Private Course</string>
-    <string name="private_course_colon">Private Course:</string>
-    <string name="access_code_colon">Access Code:</string>
-    <string name="access_private_course">Access Private Course</string>
-    <string name="enter_access_code">Enter the 9-digit access code to view the private course</string>
-    <string name="access_code">Access Code</string>
-    <string name="access_course">Access Course</string>
-    <string name="invalid_access_code">Invalid access code</string>
-    <string name="private_course_info">Private courses are only accessible with a 9-digit access code that will be generated automatically.</string>
-    <string name="course_uploaded_successfully">Course uploaded successfully</string>
-    <string name="course_private_uploaded_successfully">Course uploaded successfully. Access code: %1$s</string>
-    <string name="course_updated_successfully">Course updated successfully</string>
-    <string name="course_private_updated_successfully">Course updated successfully. Access code: %1$s</string>
-
     <!-- Course Categories -->
     <string name="category_art">Art</string>
     <string name="category_tech">Tech/Programming</string>

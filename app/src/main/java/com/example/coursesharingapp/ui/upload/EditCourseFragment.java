@@ -23,7 +23,6 @@ import com.example.coursesharingapp.R;
 import com.example.coursesharingapp.databinding.FragmentEditCourseBinding;
 import com.example.coursesharingapp.model.Course;
 import com.example.coursesharingapp.repository.CourseRepository;
-import com.example.coursesharingapp.util.FileSizeNotificationManager;
 
 import java.io.File;
 
@@ -31,6 +30,9 @@ public class EditCourseFragment extends Fragment {
 
     private static final int REQUEST_THUMBNAIL = 101;
     private static final int REQUEST_VIDEO = 102;
+
+    // Define the maximum file size: 5GB in bytes
+    private static final long MAX_FILE_SIZE = 5L * 1024 * 1024 * 1024; // 5GB
 
     private FragmentEditCourseBinding binding;
     private CourseRepository courseRepository;
@@ -40,7 +42,6 @@ public class EditCourseFragment extends Fragment {
     private Course courseToEdit;
     private String courseId;
     private String selectedCategory;
-    private boolean isPrivateCourse = false;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -73,9 +74,6 @@ public class EditCourseFragment extends Fragment {
         // Setup category spinner
         setupCategorySpinner();
 
-        // Setup private course switch
-        setupPrivateCourseSwitch();
-
         // Setup click listeners
         binding.selectThumbnailButton.setOnClickListener(v -> selectThumbnail());
         binding.selectVideoButton.setOnClickListener(v -> selectVideo());
@@ -103,22 +101,6 @@ public class EditCourseFragment extends Fragment {
             @Override
             public void onNothingSelected(android.widget.AdapterView<?> parent) {
                 // Keep existing selection
-            }
-        });
-    }
-
-    private void setupPrivateCourseSwitch() {
-        binding.privateCourseSwitch.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            isPrivateCourse = isChecked;
-
-            // Show/hide access code if course is private and has an access code
-            if (isChecked && courseToEdit != null && courseToEdit.getAccessCode() != null) {
-                binding.accessCodeLabel.setVisibility(View.VISIBLE);
-                binding.accessCodeTv.setVisibility(View.VISIBLE);
-                binding.accessCodeTv.setText(courseToEdit.getAccessCode());
-            } else {
-                binding.accessCodeLabel.setVisibility(View.GONE);
-                binding.accessCodeTv.setVisibility(View.GONE);
             }
         });
     }
@@ -159,20 +141,6 @@ public class EditCourseFragment extends Fragment {
                 }
             }
         }
-
-        // Set private course switch
-        isPrivateCourse = course.isPrivate();
-        binding.privateCourseSwitch.setChecked(isPrivateCourse);
-
-        // Show access code if course is private and has an access code
-        if (course.isPrivate() && course.getAccessCode() != null) {
-            binding.accessCodeLabel.setVisibility(View.VISIBLE);
-            binding.accessCodeTv.setVisibility(View.VISIBLE);
-            binding.accessCodeTv.setText(course.getAccessCode());
-        } else {
-            binding.accessCodeLabel.setVisibility(View.GONE);
-            binding.accessCodeTv.setVisibility(View.GONE);
-        }
     }
 
     private void selectThumbnail() {
@@ -199,9 +167,8 @@ public class EditCourseFragment extends Fragment {
                         binding.thumbnailSelectedTv.setVisibility(View.VISIBLE);
 
                         // Show file size info
-                        long fileSize = getFileSize(uri);
-                        String formattedSize = FileSizeNotificationManager.formatFileSize(fileSize);
-                        binding.thumbnailSelectedTv.setText("New thumbnail selected (" + formattedSize + ")");
+                        long fileSizeInMb = getFileSize(uri) / (1024 * 1024);
+                        binding.thumbnailSelectedTv.setText("New thumbnail selected (" + fileSizeInMb + " MB)");
                     } else {
                         Toast.makeText(requireContext(), "Thumbnail file size exceeds the 5GB limit", Toast.LENGTH_LONG).show();
                     }
@@ -217,9 +184,8 @@ public class EditCourseFragment extends Fragment {
                         binding.videoSelectedTv.setVisibility(View.VISIBLE);
 
                         // Show file size info
-                        long fileSize = getFileSize(uri);
-                        String formattedSize = FileSizeNotificationManager.formatFileSize(fileSize);
-                        binding.videoSelectedTv.setText("New video selected (" + formattedSize + ")");
+                        long fileSizeInMb = getFileSize(uri) / (1024 * 1024);
+                        binding.videoSelectedTv.setText("New video selected (" + fileSizeInMb + " MB)");
                     } else {
                         Toast.makeText(requireContext(), "Video file size exceeds the 5GB limit", Toast.LENGTH_LONG).show();
                     }
@@ -237,7 +203,7 @@ public class EditCourseFragment extends Fragment {
      */
     private boolean isFileSizeValid(Uri uri) throws Exception {
         long fileSize = getFileSize(uri);
-        return fileSize <= FileSizeNotificationManager.MAX_FILE_SIZE;
+        return fileSize <= MAX_FILE_SIZE;
     }
 
     /**
@@ -375,12 +341,6 @@ public class EditCourseFragment extends Fragment {
                 courseToEdit.getUploaderUid(), courseToEdit.getUploaderUsername(), selectedCategory);
         updatedCourse.setId(courseId);
 
-        // Set private status and access code
-        updatedCourse.setPrivate(isPrivateCourse);
-        if (isPrivateCourse && courseToEdit.getAccessCode() != null) {
-            updatedCourse.setAccessCode(courseToEdit.getAccessCode());
-        }
-
         // Keep existing URLs if not changing files
         if (thumbnailUri == null) {
             updatedCourse.setThumbnailUrl(courseToEdit.getThumbnailUrl());
@@ -393,14 +353,12 @@ public class EditCourseFragment extends Fragment {
         StringBuilder uploadMessage = new StringBuilder("Updating course");
         try {
             if (thumbnailUri != null) {
-                long fileSize = getFileSize(thumbnailUri);
-                String formattedSize = FileSizeNotificationManager.formatFileSize(fileSize);
-                uploadMessage.append(", Thumbnail: ").append(formattedSize);
+                long thumbnailSizeMb = getFileSize(thumbnailUri) / (1024 * 1024);
+                uploadMessage.append(", Thumbnail: ").append(thumbnailSizeMb).append(" MB");
             }
             if (videoUri != null) {
-                long fileSize = getFileSize(videoUri);
-                String formattedSize = FileSizeNotificationManager.formatFileSize(fileSize);
-                uploadMessage.append(", Video: ").append(formattedSize);
+                long videoSizeMb = getFileSize(videoUri) / (1024 * 1024);
+                uploadMessage.append(", Video: ").append(videoSizeMb).append(" MB");
             }
             if (thumbnailUri != null || videoUri != null) {
                 Toast.makeText(requireContext(), uploadMessage.toString(), Toast.LENGTH_LONG).show();
@@ -413,12 +371,7 @@ public class EditCourseFragment extends Fragment {
             @Override
             public void onSuccess() {
                 binding.progressBar.setVisibility(View.GONE);
-
-                String successMessage = updatedCourse.isPrivate() ?
-                        "Course updated successfully. Access code: " + updatedCourse.getAccessCode() :
-                        "Course updated successfully";
-
-                Toast.makeText(requireContext(), successMessage, Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), "Course updated successfully", Toast.LENGTH_SHORT).show();
                 requireActivity().onBackPressed();
             }
 

@@ -1,12 +1,10 @@
 package com.example.coursesharingapp.ui.home;
 
-import android.app.Dialog;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.Window;
 import android.view.inputmethod.EditorInfo;
 import android.widget.Toast;
 
@@ -18,12 +16,10 @@ import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 
 import com.example.coursesharingapp.R;
-import com.example.coursesharingapp.databinding.DialogAccessCodeBinding;
 import com.example.coursesharingapp.databinding.FragmentAllCoursesBinding;
 import com.example.coursesharingapp.model.Course;
 import com.example.coursesharingapp.repository.CourseRepository;
 import com.example.coursesharingapp.ui.course.CourseAdapter;
-import com.example.coursesharingapp.util.AccessCodeUtil;
 import com.google.android.material.chip.Chip;
 
 import java.util.ArrayList;
@@ -74,9 +70,6 @@ public class AllCoursesFragment extends Fragment implements CourseAdapter.OnCour
 
         // Setup search
         setupSearchBar();
-
-        // Setup private course access button
-        binding.accessPrivateCourseButton.setOnClickListener(v -> showAccessCodeDialog());
 
         // Load all courses initially
         loadCourses();
@@ -265,70 +258,6 @@ public class AllCoursesFragment extends Fragment implements CourseAdapter.OnCour
         args.putString("courseId", course.getId());
         NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment);
         navController.navigate(R.id.courseDetailFragment, args);
-    }
-
-    private void showAccessCodeDialog() {
-        Dialog dialog = new Dialog(requireContext());
-        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-        DialogAccessCodeBinding dialogBinding = DialogAccessCodeBinding.inflate(getLayoutInflater());
-        dialog.setContentView(dialogBinding.getRoot());
-        dialog.setCancelable(true);
-
-        // Set up access button
-        dialogBinding.accessCourseButton.setOnClickListener(v -> {
-            String accessCode = dialogBinding.accessCodeEditText.getText().toString().trim();
-
-            if (accessCode.isEmpty()) {
-                dialogBinding.accessCodeEditText.setError("Please enter an access code");
-                return;
-            }
-
-            if (accessCode.length() != 9) {
-                dialogBinding.accessCodeEditText.setError("Access code must be 9 digits");
-                return;
-            }
-
-            // Show progress
-            dialogBinding.progressBar.setVisibility(View.VISIBLE);
-            dialogBinding.accessCourseButton.setEnabled(false);
-
-            // Check if access code is valid
-            courseRepository.getCourseByAccessCode(accessCode, new CourseRepository.SingleCourseCallback() {
-                @Override
-                public void onCourseLoaded(Course course) {
-                    dialogBinding.progressBar.setVisibility(View.GONE);
-                    dialogBinding.accessCourseButton.setEnabled(true);
-
-                    // Access granted, navigate to course
-                    dialog.dismiss();
-
-                    // Navigate to course detail
-                    Bundle args = new Bundle();
-                    args.putString("courseId", course.getId());
-                    NavController navController = Navigation.findNavController(requireActivity(), R.id.nav_host_fragment);
-                    navController.navigate(R.id.courseDetailFragment, args);
-                }
-
-                @Override
-                public void onError(String errorMessage) {
-                    dialogBinding.progressBar.setVisibility(View.GONE);
-                    dialogBinding.accessCourseButton.setEnabled(true);
-                    dialogBinding.accessCodeEditText.setError("Invalid access code");
-                    Toast.makeText(requireContext(), "Invalid access code", Toast.LENGTH_SHORT).show();
-                }
-            });
-        });
-
-        // Set up cancel button
-        dialogBinding.cancelButton.setOnClickListener(v -> dialog.dismiss());
-
-        // Show dialog
-        dialog.show();
-
-        // Set dialog width
-        if (dialog.getWindow() != null) {
-            dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        }
     }
 
     @Override

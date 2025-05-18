@@ -61,64 +61,6 @@
             app:layout_constraintStart_toEndOf="@+id/category_label"
             app:layout_constraintTop_toBottomOf="@+id/course_title_et_layout" />
 
-        <!-- Private Course Switch -->
-        <TextView
-            android:id="@+id/private_course_label"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="Private Course:"
-            android:textSize="16sp"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/category_spinner" />
-
-        <com.google.android.material.switchmaterial.SwitchMaterial
-            android:id="@+id/private_course_switch"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            app:layout_constraintStart_toEndOf="@+id/private_course_label"
-            app:layout_constraintBottom_toBottomOf="@+id/private_course_label"
-            app:layout_constraintTop_toTopOf="@+id/private_course_label" />
-
-        <!-- Access Code Display -->
-        <TextView
-            android:id="@+id/access_code_label"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Access Code:"
-            android:textSize="14sp"
-            android:visibility="gone"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/private_course_label" />
-
-        <TextView
-            android:id="@+id/access_code_tv"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginStart="8dp"
-            android:textSize="14sp"
-            android:textStyle="bold"
-            android:visibility="gone"
-            tools:text="123456789"
-            app:layout_constraintStart_toEndOf="@+id/access_code_label"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintTop_toTopOf="@+id/access_code_label"
-            app:layout_constraintBottom_toBottomOf="@+id/access_code_label" />
-
-        <TextView
-            android:id="@+id/private_course_info_tv"
-            android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
-            android:text="Private courses are only accessible with a 9-digit access code."
-            android:textSize="12sp"
-            android:textStyle="italic"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/access_code_label" />
-
         <com.google.android.material.textfield.TextInputLayout
             android:id="@+id/short_description_et_layout"
             android:layout_width="match_parent"
@@ -126,7 +68,7 @@
             android:layout_marginTop="16dp"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/private_course_info_tv">
+            app:layout_constraintTop_toBottomOf="@+id/category_spinner">
 
             <com.google.android.material.textfield.TextInputEditText
                 android:id="@+id/short_description_et"
@@ -223,6 +165,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent"
             />
+
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
