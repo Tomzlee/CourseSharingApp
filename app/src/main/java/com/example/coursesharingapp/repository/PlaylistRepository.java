@@ -4,6 +4,7 @@ import androidx.annotation.NonNull;
 
 import com.example.coursesharingapp.model.Course;
 import com.example.coursesharingapp.model.Playlist;
+import com.example.coursesharingapp.model.SavedPlaylist;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -40,6 +41,11 @@ public class PlaylistRepository {
 
     public interface PlaylistWithCoursesCallback {
         void onPlaylistWithCoursesLoaded(Playlist playlist, List<Course> courses);
+        void onError(String errorMessage);
+    }
+
+    public interface IsPlaylistSavedCallback {
+        void onResult(boolean isSaved);
         void onError(String errorMessage);
     }
 
@@ -277,7 +283,178 @@ public class PlaylistRepository {
         firestore.collection("playlists")
                 .document(playlistId)
                 .delete()
-                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                .addOnSuccessListener(aVoid -> {
+                    // After deleting the playlist, also delete all saved references
+                    deleteSavedPlaylistReferences(playlistId, callback);
+                })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // Delete all saved references to a playlist when the playlist is deleted
+    private void deleteSavedPlaylistReferences(String playlistId, PlaylistCallback callback) {
+        firestore.collection("savedPlaylists")
+                .whereEqualTo("playlistId", playlistId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            callback.onSuccess();
+                            return;
+                        }
+
+                        // Create a batch operation to delete all saved references
+                        com.google.firebase.firestore.WriteBatch batch = firestore.batch();
+
+                        for (DocumentSnapshot document : task.getResult().getDocuments()) {
+                            batch.delete(document.getReference());
+                        }
+
+                        batch.commit()
+                                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Check if a playlist is saved by a user
+    public void isPlaylistSaved(String userId, String playlistId, IsPlaylistSavedCallback callback) {
+        firestore.collection("savedPlaylists")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("playlistId", playlistId)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        boolean isSaved = !task.getResult().isEmpty();
+                        callback.onResult(isSaved);
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Save a playlist for a user
+    public void savePlaylist(String userId, String playlistId, PlaylistCallback callback) {
+        // First check if it's already saved
+        isPlaylistSaved(userId, playlistId, new IsPlaylistSavedCallback() {
+            @Override
+            public void onResult(boolean isSaved) {
+                if (isSaved) {
+                    // Already saved, just return success
+                    callback.onSuccess();
+                    return;
+                }
+
+                // Create a new SavedPlaylist object
+                SavedPlaylist savedPlaylist = new SavedPlaylist(userId, playlistId);
+
+                // Add to Firestore
+                firestore.collection("savedPlaylists")
+                        .add(savedPlaylist)
+                        .addOnSuccessListener(documentReference -> {
+                            callback.onSuccess();
+                        })
+                        .addOnFailureListener(e -> {
+                            callback.onError(e.getMessage());
+                        });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
+
+    // Unsave a playlist for a user
+    public void unsavePlaylist(String userId, String playlistId, PlaylistCallback callback) {
+        firestore.collection("savedPlaylists")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("playlistId", playlistId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            // Not saved, just return success
+                            callback.onSuccess();
+                            return;
+                        }
+
+                        // Get the SavedPlaylist document ID
+                        String savedPlaylistId = task.getResult().getDocuments().get(0).getId();
+
+                        // Delete from Firestore
+                        firestore.collection("savedPlaylists")
+                                .document(savedPlaylistId)
+                                .delete()
+                                .addOnSuccessListener(aVoid -> {
+                                    callback.onSuccess();
+                                })
+                                .addOnFailureListener(e -> {
+                                    callback.onError(e.getMessage());
+                                });
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Get saved playlists for a user
+    public void getSavedPlaylists(String userId, PlaylistsCallback callback) {
+        // First get all saved playlist IDs for the user
+        firestore.collection("savedPlaylists")
+                .whereEqualTo("userId", userId)
+                .orderBy("savedAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            // No saved playlists
+                            callback.onPlaylistsLoaded(new ArrayList<>());
+                            return;
+                        }
+
+                        List<String> playlistIds = new ArrayList<>();
+                        for (DocumentSnapshot document : task.getResult().getDocuments()) {
+                            SavedPlaylist savedPlaylist = document.toObject(SavedPlaylist.class);
+                            if (savedPlaylist != null) {
+                                playlistIds.add(savedPlaylist.getPlaylistId());
+                            }
+                        }
+
+                        // Now fetch all these playlists
+                        List<Playlist> savedPlaylists = new ArrayList<>();
+                        final int[] pendingRequests = {playlistIds.size()};
+
+                        for (String playlistId : playlistIds) {
+                            getPlaylistById(playlistId, new SinglePlaylistCallback() {
+                                @Override
+                                public void onPlaylistLoaded(Playlist playlist) {
+                                    savedPlaylists.add(playlist);
+                                    pendingRequests[0]--;
+                                    checkComplete();
+                                }
+
+                                @Override
+                                public void onError(String errorMessage) {
+                                    // Just log error and continue
+                                    android.util.Log.e(TAG, "Error loading playlist: " + errorMessage);
+                                    pendingRequests[0]--;
+                                    checkComplete();
+                                }
+
+                                private void checkComplete() {
+                                    if (pendingRequests[0] == 0) {
+                                        callback.onPlaylistsLoaded(savedPlaylists);
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
     }
 }

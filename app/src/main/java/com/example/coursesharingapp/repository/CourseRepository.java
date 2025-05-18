@@ -4,6 +4,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import com.example.coursesharingapp.model.Course;
+import com.example.coursesharingapp.model.SavedCourse;
 import com.google.firebase.firestore.DocumentReference;
 import com.google.firebase.firestore.DocumentSnapshot;
 import com.google.firebase.firestore.FirebaseFirestore;
@@ -22,7 +23,6 @@ public class CourseRepository {
     private final FirebaseFirestore firestore;
     private final FirebaseStorage storage;
 
-    // Define the maximum file size: 5GB in bytes
     // Define the maximum file size: 5GB in bytes
     private static final long MAX_FILE_SIZE = 5L * 1024 * 1024 * 1024; // 5GB
 
@@ -49,6 +49,11 @@ public class CourseRepository {
     public interface UploadCallback {
         void onProgress(int progress);
         void onSuccess(String downloadUrl);
+        void onError(String errorMessage);
+    }
+
+    public interface IsCourseBookmarkedCallback {
+        void onResult(boolean isBookmarked);
         void onError(String errorMessage);
     }
 
@@ -114,7 +119,6 @@ public class CourseRepository {
                 });
     }
 
-    // Search courses by name (title)
     // Search courses by title, description, or uploader username
     public void searchCourses(String query, CoursesCallback callback) {
         // Get all courses and filter client-side since Firestore doesn't support 'contains' queries
@@ -158,6 +162,146 @@ public class CourseRepository {
                             callback.onCourseLoaded(course);
                         } else {
                             callback.onError("Course not found");
+                        }
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Check if a course is bookmarked by a user
+    public void isCourseSaved(String userId, String courseId, IsCourseBookmarkedCallback callback) {
+        firestore.collection("savedCourses")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("courseId", courseId)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        boolean isBookmarked = !task.getResult().isEmpty();
+                        callback.onResult(isBookmarked);
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Save a course for a user
+    public void saveCourse(String userId, String courseId, CourseCallback callback) {
+        // First check if it's already saved
+        isCourseSaved(userId, courseId, new IsCourseBookmarkedCallback() {
+            @Override
+            public void onResult(boolean isBookmarked) {
+                if (isBookmarked) {
+                    // Already saved, just return success
+                    callback.onSuccess();
+                    return;
+                }
+
+                // Create a new SavedCourse object
+                SavedCourse savedCourse = new SavedCourse(userId, courseId);
+
+                // Add to Firestore
+                firestore.collection("savedCourses")
+                        .add(savedCourse)
+                        .addOnSuccessListener(documentReference -> {
+                            callback.onSuccess();
+                        })
+                        .addOnFailureListener(e -> {
+                            callback.onError(e.getMessage());
+                        });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
+
+    // Unsave a course for a user
+    public void unsaveCourse(String userId, String courseId, CourseCallback callback) {
+        firestore.collection("savedCourses")
+                .whereEqualTo("userId", userId)
+                .whereEqualTo("courseId", courseId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            // Not saved, just return success
+                            callback.onSuccess();
+                            return;
+                        }
+
+                        // Get the SavedCourse document ID
+                        String savedCourseId = task.getResult().getDocuments().get(0).getId();
+
+                        // Delete from Firestore
+                        firestore.collection("savedCourses")
+                                .document(savedCourseId)
+                                .delete()
+                                .addOnSuccessListener(aVoid -> {
+                                    callback.onSuccess();
+                                })
+                                .addOnFailureListener(e -> {
+                                    callback.onError(e.getMessage());
+                                });
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Get saved courses for a user
+    public void getSavedCourses(String userId, CoursesCallback callback) {
+        // First get all saved course IDs for the user
+        firestore.collection("savedCourses")
+                .whereEqualTo("userId", userId)
+                .orderBy("savedAt", Query.Direction.DESCENDING)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            // No saved courses
+                            callback.onCoursesLoaded(new ArrayList<>());
+                            return;
+                        }
+
+                        List<String> courseIds = new ArrayList<>();
+                        for (DocumentSnapshot document : task.getResult().getDocuments()) {
+                            SavedCourse savedCourse = document.toObject(SavedCourse.class);
+                            if (savedCourse != null) {
+                                courseIds.add(savedCourse.getCourseId());
+                            }
+                        }
+
+                        // Now fetch all these courses
+                        List<Course> savedCourses = new ArrayList<>();
+                        final int[] pendingRequests = {courseIds.size()};
+
+                        for (String courseId : courseIds) {
+                            getCourseById(courseId, new SingleCourseCallback() {
+                                @Override
+                                public void onCourseLoaded(Course course) {
+                                    savedCourses.add(course);
+                                    pendingRequests[0]--;
+                                    checkComplete();
+                                }
+
+                                @Override
+                                public void onError(String errorMessage) {
+                                    // Just log error and continue
+                                    Log.e(TAG, "Error loading course: " + errorMessage);
+                                    pendingRequests[0]--;
+                                    checkComplete();
+                                }
+
+                                private void checkComplete() {
+                                    if (pendingRequests[0] == 0) {
+                                        callback.onCoursesLoaded(savedCourses);
+                                    }
+                                }
+                            });
                         }
                     } else {
                         callback.onError(task.getException().getMessage());
@@ -353,7 +497,10 @@ public class CourseRepository {
                                 firestore.collection("courses")
                                         .document(courseId)
                                         .delete()
-                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnSuccessListener(aVoid -> {
+                                            // Delete all saved references to this course
+                                            deleteSavedCourseReferences(courseId, callback);
+                                        })
                                         .addOnFailureListener(e -> callback.onError(e.getMessage()));
                             }
 
@@ -364,7 +511,10 @@ public class CourseRepository {
                                 firestore.collection("courses")
                                         .document(courseId)
                                         .delete()
-                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnSuccessListener(aVoid -> {
+                                            // Delete all saved references to this course
+                                            deleteSavedCourseReferences(courseId, callback);
+                                        })
                                         .addOnFailureListener(e -> callback.onError(e.getMessage()));
                             }
                         });
@@ -380,7 +530,10 @@ public class CourseRepository {
                                 firestore.collection("courses")
                                         .document(courseId)
                                         .delete()
-                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnSuccessListener(aVoid -> {
+                                            // Delete all saved references to this course
+                                            deleteSavedCourseReferences(courseId, callback);
+                                        })
                                         .addOnFailureListener(e -> callback.onError(e.getMessage()));
                             }
 
@@ -391,7 +544,10 @@ public class CourseRepository {
                                 firestore.collection("courses")
                                         .document(courseId)
                                         .delete()
-                                        .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                        .addOnSuccessListener(aVoid -> {
+                                            // Delete all saved references to this course
+                                            deleteSavedCourseReferences(courseId, callback);
+                                        })
                                         .addOnFailureListener(e -> callback.onError(e.getMessage()));
                             }
                         });
@@ -404,6 +560,34 @@ public class CourseRepository {
                 callback.onError(errorMessage);
             }
         });
+    }
+
+    // Delete all saved references to a course when the course is deleted
+    private void deleteSavedCourseReferences(String courseId, CourseCallback callback) {
+        firestore.collection("savedCourses")
+                .whereEqualTo("courseId", courseId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            callback.onSuccess();
+                            return;
+                        }
+
+                        // Create a batch operation to delete all saved references
+                        com.google.firebase.firestore.WriteBatch batch = firestore.batch();
+
+                        for (DocumentSnapshot document : task.getResult().getDocuments()) {
+                            batch.delete(document.getReference());
+                        }
+
+                        batch.commit()
+                                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
     }
 
     private void deleteFileFromUrl(String fileUrl, CourseCallback callback) {
@@ -451,7 +635,4 @@ public class CourseRepository {
             }
         });
     }
-
-    // Note: We removed the getFileSize method since we're now handling file size limits
-    // through Firebase Storage rules and error handling in the upload task
 }

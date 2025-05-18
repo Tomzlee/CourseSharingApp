@@ -8,6 +8,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -16,8 +17,10 @@ import com.example.coursesharingapp.R;
 import com.example.coursesharingapp.databinding.FragmentPlaylistDetailBinding;
 import com.example.coursesharingapp.model.Course;
 import com.example.coursesharingapp.model.Playlist;
+import com.example.coursesharingapp.repository.AuthRepository;
 import com.example.coursesharingapp.repository.PlaylistRepository;
 import com.example.coursesharingapp.ui.course.CourseAdapter;
+import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -28,15 +31,21 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
 
     private FragmentPlaylistDetailBinding binding;
     private PlaylistRepository playlistRepository;
+    private AuthRepository authRepository;
     private CourseAdapter courseAdapter;
     private List<Course> coursesList;
     private String playlistId;
+    private FirebaseUser currentUser;
+    private boolean isSaved = false;
+    private Playlist currentPlaylist;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         playlistRepository = new PlaylistRepository();
+        authRepository = new AuthRepository();
         coursesList = new ArrayList<>();
+        currentUser = authRepository.getCurrentUser();
 
         // Get playlistId from arguments
         if (getArguments() != null) {
@@ -61,8 +70,20 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
             return;
         }
 
+        // Setup save button
+        binding.savePlaylistButton.setOnClickListener(v -> {
+            if (currentUser == null) {
+                Toast.makeText(requireContext(), R.string.please_login_to_save, Toast.LENGTH_SHORT).show();
+                return;
+            }
+            toggleSavePlaylist();
+        });
+
         // Setup RecyclerView
         setupRecyclerView();
+
+        // Check if playlist is saved
+        checkIfPlaylistSaved();
 
         // Load playlist details and courses
         loadPlaylistWithCourses();
@@ -74,6 +95,75 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
         binding.playlistCoursesRecyclerView.setAdapter(courseAdapter);
     }
 
+    private void checkIfPlaylistSaved() {
+        if (currentUser == null || playlistId == null) return;
+
+        playlistRepository.isPlaylistSaved(currentUser.getUid(), playlistId, new PlaylistRepository.IsPlaylistSavedCallback() {
+            @Override
+            public void onResult(boolean isSaved) {
+                PlaylistDetailFragment.this.isSaved = isSaved;
+                updateSaveButton();
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                Toast.makeText(requireContext(), "Error checking save status: " + errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void updateSaveButton() {
+        if (isSaved) {
+            binding.savePlaylistButton.setText(R.string.unsave_playlist);
+            binding.savePlaylistButton.setIcon(ContextCompat.getDrawable(requireContext(), android.R.drawable.btn_star_big_on));
+        } else {
+            binding.savePlaylistButton.setText(R.string.save_playlist);
+            binding.savePlaylistButton.setIcon(ContextCompat.getDrawable(requireContext(), android.R.drawable.btn_star_big_off));
+        }
+    }
+
+    private void toggleSavePlaylist() {
+        if (currentUser == null || playlistId == null) return;
+
+        binding.progressBar.setVisibility(View.VISIBLE);
+
+        if (isSaved) {
+            // Unsave playlist
+            playlistRepository.unsavePlaylist(currentUser.getUid(), playlistId, new PlaylistRepository.PlaylistCallback() {
+                @Override
+                public void onSuccess() {
+                    binding.progressBar.setVisibility(View.GONE);
+                    isSaved = false;
+                    updateSaveButton();
+                    Toast.makeText(requireContext(), R.string.playlist_unsaved, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
+        } else {
+            // Save playlist
+            playlistRepository.savePlaylist(currentUser.getUid(), playlistId, new PlaylistRepository.PlaylistCallback() {
+                @Override
+                public void onSuccess() {
+                    binding.progressBar.setVisibility(View.GONE);
+                    isSaved = true;
+                    updateSaveButton();
+                    Toast.makeText(requireContext(), R.string.playlist_saved, Toast.LENGTH_SHORT).show();
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), "Error: " + errorMessage, Toast.LENGTH_SHORT).show();
+                }
+            });
+        }
+    }
+
     private void loadPlaylistWithCourses() {
         binding.progressBar.setVisibility(View.VISIBLE);
 
@@ -81,6 +171,7 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
             @Override
             public void onPlaylistWithCoursesLoaded(Playlist playlist, List<Course> courses) {
                 binding.progressBar.setVisibility(View.GONE);
+                currentPlaylist = playlist;
                 displayPlaylistDetails(playlist);
                 displayCourses(courses, playlist);
             }

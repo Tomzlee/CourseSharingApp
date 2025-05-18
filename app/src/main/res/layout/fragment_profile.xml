@@ -90,12 +90,13 @@
 
         </androidx.cardview.widget.CardView>
 
+        <!-- Saved Courses Section -->
         <TextView
-            android:id="@+id/my_courses_tv"
+            android:id="@+id/my_courses_label"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
-            android:text="@string/my_courses"
+            android:text="@string/saved_courses"
             android:textSize="20sp"
             android:textStyle="bold"
             app:layout_constraintStart_toStartOf="parent"
@@ -105,22 +106,57 @@
             android:id="@+id/no_user_courses_tv"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
-            android:text="@string/you_haven_t_uploaded_any_courses_yet"
+            android:layout_marginTop="8dp"
+            android:text="@string/no_saved_courses"
             android:visibility="gone"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/my_courses_tv" />
+            app:layout_constraintTop_toBottomOf="@+id/my_courses_label" />
 
         <androidx.recyclerview.widget.RecyclerView
             android:id="@+id/user_courses_recycler_view"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/my_courses_tv"
-            tools:itemCount="2"
+            app:layout_constraintTop_toBottomOf="@+id/my_courses_label"
+            tools:itemCount="1"
             tools:listitem="@layout/item_course" />
+
+        <!-- Saved Playlists Section -->
+        <TextView
+            android:id="@+id/saved_playlists_label"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="24dp"
+            android:text="@string/saved_playlists"
+            android:textSize="20sp"
+            android:textStyle="bold"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/user_courses_recycler_view" />
+
+        <TextView
+            android:id="@+id/no_playlists_tv"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="@string/no_saved_playlists"
+            android:visibility="gone"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/saved_playlists_label" />
+
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/saved_playlists_recycler_view"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:nestedScrollingEnabled="false"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/saved_playlists_label"
+            tools:itemCount="1"
+            tools:listitem="@layout/item_playlist" />
 
         <ProgressBar
             android:id="@+id/profile_progress_bar"
@@ -141,6 +177,16 @@
             app:layout_constraintEnd_toEndOf="@+id/user_courses_recycler_view"
             app:layout_constraintStart_toStartOf="@+id/user_courses_recycler_view"
             app:layout_constraintTop_toTopOf="@+id/user_courses_recycler_view" />
+
+        <ProgressBar
+            android:id="@+id/playlists_progress_bar"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/saved_playlists_recycler_view"
+            app:layout_constraintEnd_toEndOf="@+id/saved_playlists_recycler_view"
+            app:layout_constraintStart_toStartOf="@+id/saved_playlists_recycler_view"
+            app:layout_constraintTop_toTopOf="@+id/saved_playlists_recycler_view" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

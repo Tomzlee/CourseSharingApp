@@ -10,8 +10,13 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.example.coursesharingapp.databinding.ItemPlaylistBinding;
 import com.example.coursesharingapp.model.Playlist;
+import com.example.coursesharingapp.repository.AuthRepository;
+import com.example.coursesharingapp.repository.PlaylistRepository;
+import com.google.firebase.auth.FirebaseUser;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.PlaylistViewHolder> {
 
@@ -23,6 +28,9 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
     private boolean showDeleteButton;
     private boolean showEditButton;
     private String currentUserUid;
+    private FirebaseUser currentUser;
+    private PlaylistRepository playlistRepository;
+    private Set<String> savedPlaylistIds = new HashSet<>();
 
     // Updated constructor with edit functionality
     public PlaylistAdapter(Context context, List<Playlist> playlists,
@@ -37,11 +45,42 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
         this.showDeleteButton = showDeleteButton;
         this.showEditButton = showEditButton;
         this.currentUserUid = currentUserUid;
+
+        // Initialize Firebase-related objects
+        AuthRepository authRepository = new AuthRepository();
+        this.currentUser = authRepository.getCurrentUser();
+        this.playlistRepository = new PlaylistRepository();
+
+        // Load saved state for all playlists if the user is logged in
+        if (currentUser != null) {
+            loadSavedPlaylists();
+        }
     }
 
     // Original constructor for backward compatibility
     public PlaylistAdapter(Context context, List<Playlist> playlists, OnPlaylistClickListener listener) {
         this(context, playlists, listener, null, null, false, false, null);
+    }
+
+    private void loadSavedPlaylists() {
+        if (currentUser == null) return;
+
+        playlistRepository.getSavedPlaylists(currentUser.getUid(), new PlaylistRepository.PlaylistsCallback() {
+            @Override
+            public void onPlaylistsLoaded(List<Playlist> savedPlaylists) {
+                savedPlaylistIds.clear();
+                for (Playlist playlist : savedPlaylists) {
+                    savedPlaylistIds.add(playlist.getId());
+                }
+                notifyDataSetChanged();
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                // Just log error, no need to show message for this silent feature
+                android.util.Log.e("PlaylistAdapter", "Error loading saved playlists: " + errorMessage);
+            }
+        });
     }
 
     @NonNull
@@ -75,6 +114,13 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
             // Set playlist data
             binding.playlistTitleTv.setText(playlist.getTitle());
             binding.playlistCreatorTv.setText("By: " + playlist.getCreatorUsername());
+
+            // Show saved indicator if the playlist is saved
+            if (currentUser != null && savedPlaylistIds.contains(playlist.getId())) {
+                binding.savedIndicatorIv.setVisibility(View.VISIBLE);
+            } else {
+                binding.savedIndicatorIv.setVisibility(View.GONE);
+            }
 
             // Set course count
             int courseCount = playlist.getCoursesCount();

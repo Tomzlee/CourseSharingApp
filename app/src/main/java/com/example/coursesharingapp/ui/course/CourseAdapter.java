@@ -12,9 +12,14 @@ import com.bumptech.glide.Glide;
 import com.example.coursesharingapp.R;
 import com.example.coursesharingapp.databinding.ItemCourseBinding;
 import com.example.coursesharingapp.model.Course;
+import com.example.coursesharingapp.repository.AuthRepository;
+import com.example.coursesharingapp.repository.CourseRepository;
 import com.google.android.material.chip.Chip;
+import com.google.firebase.auth.FirebaseUser;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseViewHolder> {
 
@@ -25,6 +30,9 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
     private OnCourseEditListener editListener;
     private boolean showDeleteButton;
     private boolean showEditButton;
+    private FirebaseUser currentUser;
+    private CourseRepository courseRepository;
+    private Set<String> savedCourseIds = new HashSet<>();
 
     // Constructor with delete and edit functionality
     public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
@@ -37,6 +45,16 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         this.editListener = editListener;
         this.showDeleteButton = showDeleteButton;
         this.showEditButton = showEditButton;
+
+        // Initialize Firebase-related objects
+        AuthRepository authRepository = new AuthRepository();
+        this.currentUser = authRepository.getCurrentUser();
+        this.courseRepository = new CourseRepository();
+
+        // Load saved state for all courses if the user is logged in
+        if (currentUser != null) {
+            loadSavedCourses();
+        }
     }
 
     // Constructor with delete button parameter
@@ -48,6 +66,27 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
     // Original constructor for backward compatibility
     public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener) {
         this(context, courses, clickListener, null, null, false, false);
+    }
+
+    private void loadSavedCourses() {
+        if (currentUser == null) return;
+
+        courseRepository.getSavedCourses(currentUser.getUid(), new CourseRepository.CoursesCallback() {
+            @Override
+            public void onCoursesLoaded(List<Course> savedCourses) {
+                savedCourseIds.clear();
+                for (Course course : savedCourses) {
+                    savedCourseIds.add(course.getId());
+                }
+                notifyDataSetChanged();
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                // Just log error, no need to show message for this silent feature
+                android.util.Log.e("CourseAdapter", "Error loading saved courses: " + errorMessage);
+            }
+        });
     }
 
     @NonNull
@@ -82,6 +121,13 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             binding.courseTitleTv.setText(course.getTitle());
             binding.courseDescriptionTv.setText(course.getShortDescription());
             binding.courseUploaderTv.setText("By: " + course.getUploaderUsername());
+
+            // Show saved indicator if the course is saved
+            if (currentUser != null && savedCourseIds.contains(course.getId())) {
+                binding.savedIndicatorIv.setVisibility(View.VISIBLE);
+            } else {
+                binding.savedIndicatorIv.setVisibility(View.GONE);
+            }
 
             // Set category chip
             if (course.getCategory() != null && !course.getCategory().isEmpty()) {

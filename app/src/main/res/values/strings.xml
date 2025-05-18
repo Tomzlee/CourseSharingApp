@@ -90,4 +90,26 @@
     <!-- Search Related Strings -->
     <string name="search_playlists">Search playlists</string>
     <string name="no_playlists_matching">No playlists matching: %s</string>
+
+    <!-- Saved Courses -->
+
+    <string name="save_course">Save Course</string>
+    <string name="unsave_course">Unsave Course</string>
+    <string name="course_saved">Course saved successfully</string>
+    <string name="course_unsaved">Course removed from saved courses</string>
+    <string name="saved_courses">Saved Courses</string>
+    <string name="no_saved_courses">You haven\'t saved any courses yet</string>
+    <string name="please_login_to_save">Please log in to save courses</string>
+    <string name="confirm_unsave_course">Do you want to remove this course from your saved courses?</string>
+    <string name="unsave">Unsave</string>
+
+    <!-- Saved Playlists -->
+
+    <string name="save_playlist">Save Playlist</string>
+    <string name="unsave_playlist">Unsave Playlist</string>
+    <string name="playlist_saved">Playlist saved successfully</string>
+    <string name="playlist_unsaved">Playlist removed from saved playlists</string>
+    <string name="saved_playlists">Saved Playlists</string>
+    <string name="no_saved_playlists">You haven\'t saved any playlists yet</string>
+    <string name="confirm_unsave_playlist">Do you want to remove this playlist from your saved playlists?</string>
 </resources>

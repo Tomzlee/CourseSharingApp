@@ -17,11 +17,14 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import com.example.coursesharingapp.R;
 import com.example.coursesharingapp.databinding.FragmentProfileBinding;
 import com.example.coursesharingapp.model.Course;
+import com.example.coursesharingapp.model.Playlist;
 import com.example.coursesharingapp.model.User;
 import com.example.coursesharingapp.repository.AuthRepository;
 import com.example.coursesharingapp.repository.CourseRepository;
+import com.example.coursesharingapp.repository.PlaylistRepository;
 import com.example.coursesharingapp.repository.UserRepository;
 import com.example.coursesharingapp.ui.course.CourseAdapter;
+import com.example.coursesharingapp.ui.playlist.PlaylistAdapter;
 import com.google.firebase.auth.FirebaseUser;
 
 import java.util.ArrayList;
@@ -30,14 +33,19 @@ import java.util.List;
 public class ProfileFragment extends Fragment implements
         CourseAdapter.OnCourseClickListener,
         CourseAdapter.OnCourseDeleteListener,
-        CourseAdapter.OnCourseEditListener {
+        PlaylistAdapter.OnPlaylistClickListener,
+        PlaylistAdapter.OnPlaylistDeleteListener {
 
     private FragmentProfileBinding binding;
     private AuthRepository authRepository;
     private UserRepository userRepository;
     private CourseRepository courseRepository;
+    private PlaylistRepository playlistRepository;
     private CourseAdapter courseAdapter;
-    private List<Course> userCoursesList;
+    private PlaylistAdapter playlistAdapter;
+    private List<Course> savedCoursesList;
+    private List<Playlist> savedPlaylistsList;
+    private FirebaseUser currentUser;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -45,7 +53,10 @@ public class ProfileFragment extends Fragment implements
         authRepository = new AuthRepository();
         userRepository = new UserRepository();
         courseRepository = new CourseRepository();
-        userCoursesList = new ArrayList<>();
+        playlistRepository = new PlaylistRepository();
+        savedCoursesList = new ArrayList<>();
+        savedPlaylistsList = new ArrayList<>();
+        currentUser = authRepository.getCurrentUser();
     }
 
     @Nullable
@@ -60,7 +71,6 @@ public class ProfileFragment extends Fragment implements
         super.onViewCreated(view, savedInstanceState);
 
         // Check if user is authenticated
-        FirebaseUser currentUser = authRepository.getCurrentUser();
         if (currentUser == null) {
             navigateToLogin();
             return;
@@ -72,14 +82,20 @@ public class ProfileFragment extends Fragment implements
             navigateToLogin();
         });
 
-        // Setup RecyclerView
-        setupRecyclerView();
+        // Setup RecyclerView for saved courses
+        setupCourseRecyclerView();
+
+        // Setup RecyclerView for saved playlists
+        setupPlaylistRecyclerView();
 
         // Load user profile
         loadUserProfile(currentUser.getUid());
 
-        // Load user's uploaded courses
-        loadUserCourses(currentUser.getUid());
+        // Load user's saved courses
+        loadSavedCourses(currentUser.getUid());
+
+        // Load user's saved playlists
+        loadSavedPlaylists(currentUser.getUid());
     }
 
     private void navigateToLogin() {
@@ -91,11 +107,18 @@ public class ProfileFragment extends Fragment implements
         navController.navigate(R.id.loginFragment, null, navOptions);
     }
 
-    private void setupRecyclerView() {
-        // Use constructor with edit button enabled
-        courseAdapter = new CourseAdapter(requireContext(), userCoursesList, this, this, this, true, true);
+    private void setupCourseRecyclerView() {
+        // We're using the delete listener to "unsave" courses, not truly delete them
+        courseAdapter = new CourseAdapter(requireContext(), savedCoursesList, this, this, false);
         binding.userCoursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
         binding.userCoursesRecyclerView.setAdapter(courseAdapter);
+    }
+
+    private void setupPlaylistRecyclerView() {
+        // We're using the delete listener to "unsave" playlists, not truly delete them
+        playlistAdapter = new PlaylistAdapter(requireContext(), savedPlaylistsList, this, this, null, false, false, currentUser.getUid());
+        binding.savedPlaylistsRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
+        binding.savedPlaylistsRecyclerView.setAdapter(playlistAdapter);
     }
 
     private void loadUserProfile(String userId) {
@@ -119,28 +142,22 @@ public class ProfileFragment extends Fragment implements
         });
     }
 
-    private void loadUserCourses(String userId) {
+    private void loadSavedCourses(String userId) {
         binding.coursesProgressBar.setVisibility(View.VISIBLE);
 
-        courseRepository.getAllCourses(new CourseRepository.CoursesCallback() {
+        courseRepository.getSavedCourses(userId, new CourseRepository.CoursesCallback() {
             @Override
             public void onCoursesLoaded(List<Course> courses) {
                 binding.coursesProgressBar.setVisibility(View.GONE);
 
-                // Filter courses uploaded by this user
-                List<Course> filteredCourses = new ArrayList<>();
-                for (Course course : courses) {
-                    if (course.getUploaderUid().equals(userId)) {
-                        filteredCourses.add(course);
-                    }
-                }
-
-                if (filteredCourses.isEmpty()) {
+                if (courses.isEmpty()) {
                     binding.noUserCoursesTv.setVisibility(View.VISIBLE);
+                    binding.userCoursesRecyclerView.setVisibility(View.GONE);
                 } else {
                     binding.noUserCoursesTv.setVisibility(View.GONE);
-                    userCoursesList.clear();
-                    userCoursesList.addAll(filteredCourses);
+                    binding.userCoursesRecyclerView.setVisibility(View.VISIBLE);
+                    savedCoursesList.clear();
+                    savedCoursesList.addAll(courses);
                     courseAdapter.notifyDataSetChanged();
                 }
             }
@@ -148,6 +165,34 @@ public class ProfileFragment extends Fragment implements
             @Override
             public void onError(String errorMessage) {
                 binding.coursesProgressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void loadSavedPlaylists(String userId) {
+        binding.playlistsProgressBar.setVisibility(View.VISIBLE);
+
+        playlistRepository.getSavedPlaylists(userId, new PlaylistRepository.PlaylistsCallback() {
+            @Override
+            public void onPlaylistsLoaded(List<Playlist> playlists) {
+                binding.playlistsProgressBar.setVisibility(View.GONE);
+
+                if (playlists.isEmpty()) {
+                    binding.noPlaylistsTv.setVisibility(View.VISIBLE);
+                    binding.savedPlaylistsRecyclerView.setVisibility(View.GONE);
+                } else {
+                    binding.noPlaylistsTv.setVisibility(View.GONE);
+                    binding.savedPlaylistsRecyclerView.setVisibility(View.VISIBLE);
+                    savedPlaylistsList.clear();
+                    savedPlaylistsList.addAll(playlists);
+                    playlistAdapter.notifyDataSetChanged();
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                binding.playlistsProgressBar.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
             }
         });
@@ -162,47 +207,92 @@ public class ProfileFragment extends Fragment implements
     }
 
     @Override
+    public void onPlaylistClick(Playlist playlist, int position) {
+        // Navigate to playlist detail
+        Bundle args = new Bundle();
+        args.putString("playlistId", playlist.getId());
+        Navigation.findNavController(requireView()).navigate(R.id.action_to_playlistDetail, args);
+    }
+
+    @Override
     public void onCourseDelete(Course course, int position) {
+        // In this context, "delete" means "unsave"
+        if (currentUser == null) return;
+
         // Show confirmation dialog
         new androidx.appcompat.app.AlertDialog.Builder(requireContext())
-                .setTitle("Delete Course")
-                .setMessage("Are you sure you want to delete this course?")
-                .setPositiveButton("Delete", (dialog, which) -> deleteCourse(course, position))
-                .setNegativeButton("Cancel", null)
+                .setTitle(R.string.unsave_course)
+                .setMessage(R.string.confirm_unsave_course)
+                .setPositiveButton(R.string.unsave, (dialog, which) -> unsaveCourse(currentUser.getUid(), course, position))
+                .setNegativeButton(R.string.cancel, null)
                 .show();
     }
 
     @Override
-    public void onCourseEdit(Course course, int position) {
-        // Navigate to edit course fragment
-        Bundle args = new Bundle();
-        args.putString("courseId", course.getId());
-        Navigation.findNavController(requireView()).navigate(R.id.action_to_editCourse, args);
+    public void onPlaylistDelete(Playlist playlist, int position) {
+        // In this context, "delete" means "unsave"
+        if (currentUser == null) return;
+
+        // Show confirmation dialog
+        new androidx.appcompat.app.AlertDialog.Builder(requireContext())
+                .setTitle(R.string.unsave_playlist)
+                .setMessage(R.string.confirm_unsave_playlist)
+                .setPositiveButton(R.string.unsave, (dialog, which) -> unsavePlaylist(currentUser.getUid(), playlist, position))
+                .setNegativeButton(R.string.cancel, null)
+                .show();
     }
 
-    private void deleteCourse(Course course, int position) {
+    private void unsaveCourse(String userId, Course course, int position) {
         binding.coursesProgressBar.setVisibility(View.VISIBLE);
 
-        // Delete course using CourseRepository
-        courseRepository.deleteCourse(course.getId(), new CourseRepository.CourseCallback() {
+        courseRepository.unsaveCourse(userId, course.getId(), new CourseRepository.CourseCallback() {
             @Override
             public void onSuccess() {
                 binding.coursesProgressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Course deleted successfully", Toast.LENGTH_SHORT).show();
+                Toast.makeText(requireContext(), R.string.course_unsaved, Toast.LENGTH_SHORT).show();
 
                 // Remove the course from the list
-                userCoursesList.remove(position);
+                savedCoursesList.remove(position);
                 courseAdapter.notifyItemRemoved(position);
 
                 // Check if list is empty
-                if (userCoursesList.isEmpty()) {
+                if (savedCoursesList.isEmpty()) {
                     binding.noUserCoursesTv.setVisibility(View.VISIBLE);
+                    binding.userCoursesRecyclerView.setVisibility(View.GONE);
                 }
             }
 
             @Override
             public void onError(String errorMessage) {
                 binding.coursesProgressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    private void unsavePlaylist(String userId, Playlist playlist, int position) {
+        binding.playlistsProgressBar.setVisibility(View.VISIBLE);
+
+        playlistRepository.unsavePlaylist(userId, playlist.getId(), new PlaylistRepository.PlaylistCallback() {
+            @Override
+            public void onSuccess() {
+                binding.playlistsProgressBar.setVisibility(View.GONE);
+                Toast.makeText(requireContext(), R.string.playlist_unsaved, Toast.LENGTH_SHORT).show();
+
+                // Remove the playlist from the list
+                savedPlaylistsList.remove(position);
+                playlistAdapter.notifyItemRemoved(position);
+
+                // Check if list is empty
+                if (savedPlaylistsList.isEmpty()) {
+                    binding.noPlaylistsTv.setVisibility(View.VISIBLE);
+                    binding.savedPlaylistsRecyclerView.setVisibility(View.GONE);
+                }
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                binding.playlistsProgressBar.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
             }
         });
