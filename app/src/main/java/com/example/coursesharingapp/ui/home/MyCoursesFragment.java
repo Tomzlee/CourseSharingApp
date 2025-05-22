@@ -64,10 +64,8 @@ public class MyCoursesFragment extends Fragment implements
             return;
         }
 
-        // Setup RecyclerView with edit and delete functionality
         setupRecyclerView();
 
-        // Load user's courses
         loadMyCourses();
     }
 

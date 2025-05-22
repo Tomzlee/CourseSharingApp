@@ -49,9 +49,15 @@ public class PlaylistRepository {
         void onError(String errorMessage);
     }
 
-    // Get all playlists
+    public interface AccessCodeValidationCallback {
+        void onValidationResult(boolean isValid, Playlist playlist);
+        void onError(String errorMessage);
+    }
+
+    // Get all PUBLIC playlists only
     public void getAllPlaylists(PlaylistsCallback callback) {
         firestore.collection("playlists")
+                .whereEqualTo("private", false) // Only get public playlists
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
@@ -69,7 +75,7 @@ public class PlaylistRepository {
                 });
     }
 
-    // Get playlists by creator
+    // Get playlists by creator - includes both public and private
     public void getPlaylistsByCreator(String creatorUid, PlaylistsCallback callback) {
         firestore.collection("playlists")
                 .whereEqualTo("creatorUid", creatorUid)
@@ -90,9 +96,9 @@ public class PlaylistRepository {
                 });
     }
 
-    // Search all playlists by title, description, or uploader username
+    // Search all PUBLIC playlists by title, description, or uploader username
     public void searchAllPlaylists(String query, PlaylistsCallback callback) {
-        // Get all playlists and filter client-side since Firestore doesn't support 'contains' queries
+        // Get all public playlists and filter client-side since Firestore doesn't support 'contains' queries
         getAllPlaylists(new PlaylistsCallback() {
             @Override
             public void onPlaylistsLoaded(List<Playlist> allPlaylists) {
@@ -127,7 +133,7 @@ public class PlaylistRepository {
         });
     }
 
-    // Search user's playlists by title or description
+    // Search user's playlists by title or description - includes both public and private
     public void searchUserPlaylists(String creatorUid, String query, PlaylistsCallback callback) {
         // Get user's playlists and filter client-side
         getPlaylistsByCreator(creatorUid, new PlaylistsCallback() {
@@ -158,6 +164,29 @@ public class PlaylistRepository {
                 callback.onError(errorMessage);
             }
         });
+    }
+
+    // Validate access code for private playlist
+    public void validatePlaylistAccessCode(String accessCode, AccessCodeValidationCallback callback) {
+        firestore.collection("playlists")
+                .whereEqualTo("accessCode", accessCode)
+                .whereEqualTo("private", true)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (!task.getResult().isEmpty()) {
+                            DocumentSnapshot document = task.getResult().getDocuments().get(0);
+                            Playlist playlist = document.toObject(Playlist.class);
+                            playlist.setId(document.getId());
+                            callback.onValidationResult(true, playlist);
+                        } else {
+                            callback.onValidationResult(false, null);
+                        }
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
     }
 
     // Get a single playlist by ID
@@ -401,7 +430,7 @@ public class PlaylistRepository {
                 });
     }
 
-    // Get saved playlists for a user
+    // Get saved playlists for a user (includes both public and private playlists they've saved)
     public void getSavedPlaylists(String userId, PlaylistsCallback callback) {
         // First get all saved playlist IDs for the user
         firestore.collection("savedPlaylists")

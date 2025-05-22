@@ -70,7 +70,6 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
             return;
         }
 
-        // Setup save button
         binding.savePlaylistButton.setOnClickListener(v -> {
             if (currentUser == null) {
                 Toast.makeText(requireContext(), R.string.please_login_to_save, Toast.LENGTH_SHORT).show();
@@ -79,13 +78,10 @@ public class PlaylistDetailFragment extends Fragment implements CourseAdapter.On
             toggleSavePlaylist();
         });
 
-        // Setup RecyclerView
         setupRecyclerView();
 
-        // Check if playlist is saved
         checkIfPlaylistSaved();
 
-        // Load playlist details and courses
         loadPlaylistWithCourses();
     }
 

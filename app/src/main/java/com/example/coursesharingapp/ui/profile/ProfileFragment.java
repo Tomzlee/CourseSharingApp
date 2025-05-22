@@ -76,7 +76,6 @@ public class ProfileFragment extends Fragment implements
             return;
         }
 
-        // Set up sign out button
         binding.signOutButton.setOnClickListener(v -> {
             authRepository.signOut();
             navigateToLogin();

@@ -57,9 +57,15 @@ public class CourseRepository {
         void onError(String errorMessage);
     }
 
-    // Get all courses (no filter)
+    public interface AccessCodeValidationCallback {
+        void onValidationResult(boolean isValid, Course course);
+        void onError(String errorMessage);
+    }
+
+    // Get all PUBLIC courses only (no filter)
     public void getAllCourses(CoursesCallback callback) {
         firestore.collection("courses")
+                .whereEqualTo("private", false) // Only get public courses
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
@@ -77,10 +83,11 @@ public class CourseRepository {
                 });
     }
 
-    // Get courses by category
+    // Get PUBLIC courses by category
     public void getCoursesByCategory(String category, CoursesCallback callback) {
         firestore.collection("courses")
                 .whereEqualTo("category", category)
+                .whereEqualTo("private", false) // Only get public courses
                 .orderBy("createdAt", Query.Direction.DESCENDING)
                 .get()
                 .addOnCompleteListener(task -> {
@@ -98,7 +105,7 @@ public class CourseRepository {
                 });
     }
 
-    // Get courses by uploader (my courses)
+    // Get courses by uploader (my courses) - includes both public and private
     public void getCoursesByUploader(String uploaderUid, CoursesCallback callback) {
         firestore.collection("courses")
                 .whereEqualTo("uploaderUid", uploaderUid)
@@ -119,9 +126,9 @@ public class CourseRepository {
                 });
     }
 
-    // Search courses by title, description, or uploader username
+    // Search PUBLIC courses only by title, description, or uploader username
     public void searchCourses(String query, CoursesCallback callback) {
-        // Get all courses and filter client-side since Firestore doesn't support 'contains' queries
+        // Get all public courses and filter client-side since Firestore doesn't support 'contains' queries
         getAllCourses(new CoursesCallback() {
             @Override
             public void onCoursesLoaded(List<Course> allCourses) {
@@ -147,6 +154,29 @@ public class CourseRepository {
                 callback.onError(errorMessage);
             }
         });
+    }
+
+    // Validate access code for private course
+    public void validateCourseAccessCode(String accessCode, AccessCodeValidationCallback callback) {
+        firestore.collection("courses")
+                .whereEqualTo("accessCode", accessCode)
+                .whereEqualTo("isPrivate", true)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (!task.getResult().isEmpty()) {
+                            DocumentSnapshot document = task.getResult().getDocuments().get(0);
+                            Course course = document.toObject(Course.class);
+                            course.setId(document.getId());
+                            callback.onValidationResult(true, course);
+                        } else {
+                            callback.onValidationResult(false, null);
+                        }
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
     }
 
     public void getCourseById(String courseId, SingleCourseCallback callback) {
@@ -252,7 +282,7 @@ public class CourseRepository {
                 });
     }
 
-    // Get saved courses for a user
+    // Get saved courses for a user (includes both public and private courses they've saved)
     public void getSavedCourses(String userId, CoursesCallback callback) {
         // First get all saved course IDs for the user
         firestore.collection("savedCourses")
@@ -356,7 +386,6 @@ public class CourseRepository {
     }
 
     public void editCourse(Course course, Uri thumbnailUri, Uri videoUri, CourseCallback callback) {
-        // Check if course ID exists
         if (course.getId() == null || course.getId().isEmpty()) {
             callback.onError("Course ID is required for editing");
             return;
@@ -364,7 +393,6 @@ public class CourseRepository {
 
         // Check if there are new files to upload
         if (thumbnailUri != null && videoUri != null) {
-            // Upload both new thumbnail and video
             uploadThumbnail(course.getId(), thumbnailUri, new UploadCallback() {
                 @Override
                 public void onProgress(int progress) {

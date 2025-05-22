@@ -59,19 +59,14 @@ public class AllCoursesFragment extends Fragment implements CourseAdapter.OnCour
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Setup RecyclerView
         setupRecyclerView();
 
-        // Setup filter toolbar
         setupFilterToolbar();
 
-        // Setup category chip group
         setupCategoryChips();
 
-        // Setup search
         setupSearchBar();
 
-        // Load all courses initially
         loadCourses();
     }
 

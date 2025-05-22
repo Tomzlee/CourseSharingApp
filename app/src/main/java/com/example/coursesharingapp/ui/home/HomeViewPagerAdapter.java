@@ -20,10 +20,8 @@ public class HomeViewPagerAdapter extends FragmentStateAdapter {
     @Override
     public Fragment createFragment(int position) {
         if (position == 0) {
-            // All Courses Tab
             return new AllCoursesFragment();
         } else {
-            // My Courses Tab
             return new MyCoursesFragment();
         }
     }

@@ -47,6 +47,8 @@ public class UploadCourseFragment extends Fragment {
     private FirebaseUser currentUser;
     private String username;
     private String selectedCategory;
+    private boolean isPrivate = false;
+    private String accessCode;
 
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
@@ -77,10 +79,10 @@ public class UploadCourseFragment extends Fragment {
         // Get username for the course
         getUsernameFromFirestore();
 
-        // Setup category spinner
         setupCategorySpinner();
 
-        // Setup click listeners
+        setupPrivacyOptions();
+
         binding.selectThumbnailButton.setOnClickListener(v -> selectThumbnail());
         binding.selectVideoButton.setOnClickListener(v -> selectVideo());
         binding.uploadCourseButton.setOnClickListener(v -> validateAndUploadCourse());
@@ -111,6 +113,25 @@ public class UploadCourseFragment extends Fragment {
                 // Keep default selection
             }
         });
+    }
+
+    private void setupPrivacyOptions() {
+        // Set up radio button listeners
+        binding.privacyRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.public_radio_button) {
+                isPrivate = false;
+                accessCode = null;
+                binding.accessCodeCard.setVisibility(View.GONE);
+            } else if (checkedId == R.id.private_radio_button) {
+                isPrivate = true;
+                accessCode = Course.generateNewAccessCode();
+                binding.accessCodeDisplayTv.setText(accessCode);
+                binding.accessCodeCard.setVisibility(View.VISIBLE);
+            }
+        });
+
+        // Default to public
+        binding.publicRadioButton.setChecked(true);
     }
 
     private void getUsernameFromFirestore() {
@@ -391,12 +412,25 @@ public class UploadCourseFragment extends Fragment {
         String shortDescription = binding.shortDescriptionEt.getText().toString().trim();
         String longDescription = binding.longDescriptionEt.getText().toString().trim();
 
+        // Create course with privacy settings
         Course course = new Course(title, shortDescription, longDescription,
-                currentUser.getUid(), username, selectedCategory);
+                currentUser.getUid(), username, selectedCategory, isPrivate);
+
+        // If private course already has access code, make sure it's set
+        if (isPrivate && accessCode != null) {
+            course.setAccessCode(accessCode);
+        }
 
         // Display file sizes in progress message
         try {
-            StringBuilder uploadMessage = new StringBuilder("Uploading: ");
+            StringBuilder uploadMessage = new StringBuilder("Uploading");
+            if (isPrivate) {
+                uploadMessage.append(" private course");
+            } else {
+                uploadMessage.append(" public course");
+            }
+            uploadMessage.append(": ");
+
             long thumbnailSize = getFileSize(thumbnailUri);
             long videoSize = getFileSize(videoUri);
 
@@ -416,7 +450,13 @@ public class UploadCourseFragment extends Fragment {
             @Override
             public void onSuccess() {
                 binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Course uploaded successfully", Toast.LENGTH_SHORT).show();
+
+                String successMessage = "Course uploaded successfully";
+                if (isPrivate) {
+                    successMessage += "\nAccess Code: " + accessCode + "\nShare this code with people you want to give access to your course.";
+                }
+
+                Toast.makeText(requireContext(), successMessage, Toast.LENGTH_LONG).show();
                 Navigation.findNavController(requireView()).navigate(R.id.homeFragment);
             }
 

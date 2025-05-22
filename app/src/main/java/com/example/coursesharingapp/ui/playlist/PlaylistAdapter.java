@@ -32,7 +32,6 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
     private PlaylistRepository playlistRepository;
     private Set<String> savedPlaylistIds = new HashSet<>();
 
-    // Updated constructor with edit functionality
     public PlaylistAdapter(Context context, List<Playlist> playlists,
                            OnPlaylistClickListener listener, OnPlaylistDeleteListener deleteListener,
                            OnPlaylistEditListener editListener, boolean showDeleteButton,

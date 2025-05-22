@@ -83,13 +83,10 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         super.onViewCreated(view, savedInstanceState);
 
-        // Setup RecyclerView
         setupRecyclerView();
 
-        // Setup tabs
         setupTabs();
 
-        // Setup search functionality
         setupSearchBar();
 
         // Setup FAB for creating playlists
@@ -102,7 +99,9 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
             }
         });
 
-        // Load playlists
+        binding.privatePlaylistAccessButton.setOnClickListener(v ->
+                Navigation.findNavController(requireView()).navigate(R.id.action_to_privatePlaylistAccess));
+
         loadAllPlaylists();
     }
 
@@ -140,12 +139,10 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
 
             @Override
             public void onTabUnselected(TabLayout.Tab tab) {
-                // Not needed
             }
 
             @Override
             public void onTabReselected(TabLayout.Tab tab) {
-                // Not needed
             }
         });
     }
@@ -678,7 +675,6 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
     }
 
     private void showEditPlaylistDialog(Playlist playlist, int position) {
-        // Log the start of the method
         Log.d(TAG, "showEditPlaylistDialog started for playlist: " + playlist.getTitle());
         Log.d(TAG, "Course IDs in playlist: " + playlist.getCourseIds().size());
 
@@ -692,14 +688,13 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         dialogBinding.playlistTitleEt.setText(playlist.getTitle());
         dialogBinding.playlistDescriptionEt.setText(playlist.getDescription());
 
-        // Display something in the title to indicate loading
         dialogBinding.currentCoursesTv.setText("Current Course Order (Loading...)");
 
         // Set up the RecyclerView before loading data
         RecyclerView selectedCoursesRecyclerView = dialogBinding.selectedCoursesRecyclerView;
         selectedCoursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
 
-        // Create a mutable list that will hold our course data
+        // Create a mutable list that will hold course data
         List<Course> coursesList = new ArrayList<>();
 
         // Create the adapter with the empty list
@@ -743,10 +738,8 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         touchHelper.attachToRecyclerView(selectedCoursesRecyclerView);
         orderedAdapter.setTouchHelper(touchHelper);
 
-        // Show dialog right away so user doesn't wait
         dialog.show();
 
-        // Manually set dialog width
         if (dialog.getWindow() != null) {
             dialog.getWindow().setLayout(ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT);

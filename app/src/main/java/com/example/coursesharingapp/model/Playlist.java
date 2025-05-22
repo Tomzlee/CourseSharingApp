@@ -5,6 +5,7 @@ import com.google.firebase.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Random;
 
 public class Playlist {
     private String id;
@@ -14,6 +15,8 @@ public class Playlist {
     private String creatorUsername;
     private List<String> courseIds; // List of course IDs in the playlist
     private Object createdAt; // Can be either Timestamp or Long
+    private boolean isPrivate;
+    private String accessCode;
 
     public Playlist() {
         // Required empty constructor for Firestore
@@ -27,6 +30,37 @@ public class Playlist {
         this.creatorUsername = creatorUsername;
         this.courseIds = new ArrayList<>();
         this.createdAt = Timestamp.now();
+        this.isPrivate = false; // Default to public
+        this.accessCode = null; // No access code for public playlists
+    }
+
+    public Playlist(String title, String description, String creatorUid, String creatorUsername, boolean isPrivate) {
+        this.title = title;
+        this.description = description;
+        this.creatorUid = creatorUid;
+        this.creatorUsername = creatorUsername;
+        this.courseIds = new ArrayList<>();
+        this.createdAt = Timestamp.now();
+        this.isPrivate = isPrivate;
+        this.accessCode = isPrivate ? generateAccessCode() : null;
+    }
+
+    // Generate a unique 6-digit access code
+    private String generateAccessCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000); // Generates 6-digit number
+        return String.valueOf(code);
+        //todo truly unique codes
+
+    }
+
+    // Static method to generate access code for existing playlists
+    public static String generateNewAccessCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
+        //todo truly unique codes
+
     }
 
     // Getters and Setters
@@ -95,6 +129,28 @@ public class Playlist {
 
     public int getCoursesCount() {
         return courseIds != null ? courseIds.size() : 0;
+    }
+
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+        // Generate access code when setting to private, remove when setting to public
+        if (isPrivate && accessCode == null) {
+            this.accessCode = generateAccessCode();
+        } else if (!isPrivate) {
+            this.accessCode = null;
+        }
+    }
+
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
     }
 
     // Handle both Timestamp and Long types for createdAt

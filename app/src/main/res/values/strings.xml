@@ -92,7 +92,6 @@
     <string name="no_playlists_matching">No playlists matching: %s</string>
 
     <!-- Saved Courses -->
-
     <string name="save_course">Save Course</string>
     <string name="unsave_course">Unsave Course</string>
     <string name="course_saved">Course saved successfully</string>
@@ -104,7 +103,6 @@
     <string name="unsave">Unsave</string>
 
     <!-- Saved Playlists -->
-
     <string name="save_playlist">Save Playlist</string>
     <string name="unsave_playlist">Unsave Playlist</string>
     <string name="playlist_saved">Playlist saved successfully</string>
@@ -112,4 +110,26 @@
     <string name="saved_playlists">Saved Playlists</string>
     <string name="no_saved_playlists">You haven\'t saved any playlists yet</string>
     <string name="confirm_unsave_playlist">Do you want to remove this playlist from your saved playlists?</string>
+
+    <!-- Private Content -->
+    <string name="private_course">Private Course</string>
+    <string name="private_playlist">Private Playlist</string>
+    <string name="access_private_course">Access Private Course</string>
+    <string name="access_private_playlist">Access Private Playlist</string>
+    <string name="access_code">Access Code</string>
+    <string name="access_course">Access Course</string>
+    <string name="access_playlist">Access Playlist</string>
+    <string name="private_course_description">Enter the 6-digit access code provided by the course creator to view this private course.</string>
+    <string name="private_playlist_description">Enter the 6-digit access code provided by the playlist creator to view this private playlist.</string>
+    <string name="invalid_access_code">Invalid access code. Please check and try again.</string>
+    <string name="access_code_help_course">Don\'t have an access code? Contact the course creator to get access to this private course.</string>
+    <string name="access_code_help_playlist">Don\'t have an access code? Contact the playlist creator to get access to this private playlist.</string>
+    <string name="privacy_settings">Privacy Settings</string>
+    <string name="public_visibility">Public - Anyone can find and view this content</string>
+    <string name="private_visibility">Private - Only people with access code can view</string>
+    <string name="share_access_code">Share this code with people you want to give access to your content.</string>
+    <string name="course_uploaded_private_success">Course uploaded successfully!\nAccess Code: %1$s\nShare this code with people you want to give access to your course.</string>
+    <string name="playlist_created_private_success">Playlist created successfully!\nAccess Code: %1$s\nShare this code with people you want to give access to your playlist.</string>
+    <string name="private_content_indicator">🔒 Private</string>
+    <string name="public_content_indicator">🌐 Public</string>
 </resources>

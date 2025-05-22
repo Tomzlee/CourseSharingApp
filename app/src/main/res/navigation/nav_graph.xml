@@ -43,6 +43,9 @@
         <action
             android:id="@+id/action_to_uploadCourse"
             app:destination="@id/uploadCourseFragment" />
+        <action
+            android:id="@+id/action_to_privateCourseAccess"
+            app:destination="@id/privateCourseAccessFragment" />
     </fragment>
 
     <fragment
@@ -56,6 +59,9 @@
         <action
             android:id="@+id/action_to_editCourse"
             app:destination="@id/editCourseFragment" />
+        <action
+            android:id="@+id/action_to_playlistDetail"
+            app:destination="@id/playlistDetailFragment" />
     </fragment>
 
     <fragment
@@ -66,6 +72,9 @@
         <action
             android:id="@+id/action_to_playlistDetail"
             app:destination="@id/playlistDetailFragment" />
+        <action
+            android:id="@+id/action_to_privatePlaylistAccess"
+            app:destination="@id/privatePlaylistAccessFragment" />
     </fragment>
 
     <fragment
@@ -106,4 +115,26 @@
             android:name="courseId"
             app:argType="string" />
     </fragment>
+
+    <!-- Private Access Fragments -->
+    <fragment
+        android:id="@+id/privateCourseAccessFragment"
+        android:name="com.example.coursesharingapp.ui.course.PrivateCourseAccessFragment"
+        android:label="Access Private Course"
+        tools:layout="@layout/fragment_private_course_access">
+        <action
+            android:id="@+id/action_to_courseDetail"
+            app:destination="@id/courseDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/privatePlaylistAccessFragment"
+        android:name="com.example.coursesharingapp.ui.playlist.PrivatePlaylistAccessFragment"
+        android:label="Access Private Playlist"
+        tools:layout="@layout/fragment_private_playlist_access">
+        <action
+            android:id="@+id/action_to_playlistDetail"
+            app:destination="@id/playlistDetailFragment" />
+    </fragment>
+
 </navigation>

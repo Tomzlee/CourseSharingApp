@@ -103,9 +103,8 @@ public class OrderableCourseAdapter extends RecyclerView.Adapter<OrderableCourse
         notifyDataSetChanged();
     }
 
-    /**
-     * Get list of selected course IDs in the current order
-     */
+
+    //Get list of selected course IDs in the current order
     public List<String> getSelectedCourseIds() {
         List<String> selectedIds = new ArrayList<>();
         for (Course course : selectedCourses) {
@@ -114,9 +113,8 @@ public class OrderableCourseAdapter extends RecyclerView.Adapter<OrderableCourse
         return selectedIds;
     }
 
-    /**
-     * Move a course in the selected list
-     */
+
+    //Move a course in the selected list
     public void moveItem(int fromPosition, int toPosition) {
         if (fromPosition < toPosition) {
             for (int i = fromPosition; i < toPosition; i++) {

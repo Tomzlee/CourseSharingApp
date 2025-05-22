@@ -71,15 +71,12 @@ public class EditCourseFragment extends Fragment {
             return;
         }
 
-        // Setup category spinner
         setupCategorySpinner();
 
-        // Setup click listeners
         binding.selectThumbnailButton.setOnClickListener(v -> selectThumbnail());
         binding.selectVideoButton.setOnClickListener(v -> selectVideo());
         binding.updateCourseButton.setOnClickListener(v -> validateAndUpdateCourse());
 
-        // Load course details
         loadCourseDetails();
     }
 

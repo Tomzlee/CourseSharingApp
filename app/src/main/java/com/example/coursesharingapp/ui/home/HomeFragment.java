@@ -1,33 +1,24 @@
 package com.example.coursesharingapp.ui.home;
 
 import android.os.Bundle;
-import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.inputmethod.EditorInfo;
-import android.widget.Toast;
 
 import androidx.activity.OnBackPressedCallback;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.navigation.Navigation;
-import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.viewpager2.widget.ViewPager2;
 
 import com.example.coursesharingapp.R;
 import com.example.coursesharingapp.databinding.FragmentHomeBinding;
-import com.example.coursesharingapp.model.Course;
 import com.example.coursesharingapp.repository.AuthRepository;
 import com.example.coursesharingapp.repository.CourseRepository;
-import com.example.coursesharingapp.ui.course.CourseAdapter;
 import com.google.android.material.tabs.TabLayout;
 import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.firebase.auth.FirebaseUser;
-
-import java.util.ArrayList;
-import java.util.List;
 
 public class HomeFragment extends Fragment {
 
@@ -81,10 +72,12 @@ public class HomeFragment extends Fragment {
         // Set up floating action button for adding new courses
         binding.addCourseFab.setOnClickListener(v ->
                 Navigation.findNavController(requireView()).navigate(R.id.action_to_uploadCourse));
+
+        binding.privateCourseAccessButton.setOnClickListener(v ->
+                Navigation.findNavController(requireView()).navigate(R.id.action_to_privateCourseAccess));
     }
 
     private void setupViewPager() {
-        // Create adapter
         viewPagerAdapter = new HomeViewPagerAdapter(this, currentUser);
         binding.viewPager.setAdapter(viewPagerAdapter);
 

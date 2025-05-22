@@ -67,18 +67,18 @@ public class OrderableCourseDisplayAdapter extends RecyclerView.Adapter<Orderabl
         return size;
     }
 
-    /**
-     * Get course IDs in their current order
-     */
+
+    //Get course IDs in their current order
+
     public List<String> getCourseIds() {
         return courses.stream()
                 .map(Course::getId)
                 .collect(java.util.stream.Collectors.toList());
     }
 
-    /**
-     * Move a course in the list
-     */
+
+    //Move a course in the list
+
     public void moveItem(int fromPosition, int toPosition) {
         if (fromPosition < 0 || fromPosition >= courses.size() ||
                 toPosition < 0 || toPosition >= courses.size()) {

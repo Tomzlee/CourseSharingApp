@@ -2,6 +2,7 @@ package com.example.coursesharingapp.model;
 
 import com.google.firebase.Timestamp;
 import java.util.Date;
+import java.util.Random;
 
 public class Course {
     private String id;
@@ -12,8 +13,12 @@ public class Course {
     private String uploaderUsername;
     private String thumbnailUrl;
     private String videoUrl;
-    private String category; // New field for category
+    private String category;
     private Object createdAt; // Can be either Timestamp or Long
+
+    private boolean isPrivate;
+    private String accessCode;
+
 
     // Category constants
     public static final String CATEGORY_ART = "Art";
@@ -29,6 +34,8 @@ public class Course {
 
     public Course() {
         // Required empty constructor for Firestore
+        this.isPrivate = false; // Default to public
+        this.accessCode = null; // No access code for public courses
     }
 
     public Course(String title, String shortDescription, String longDescription,
@@ -40,6 +47,25 @@ public class Course {
         this.uploaderUsername = uploaderUsername;
         this.category = category;
         this.createdAt = Timestamp.now();
+        this.isPrivate = false; // Default to public
+        this.accessCode = null; // No access code for public courses
+    }
+
+    public Course(String title, String shortDescription, String longDescription,
+                  String uploaderUid, String uploaderUsername, String category, boolean isPrivate) {
+        this.title = title;
+        this.shortDescription = shortDescription;
+        this.longDescription = longDescription;
+        this.uploaderUid = uploaderUid;
+        this.uploaderUsername = uploaderUsername;
+        this.category = category;
+        this.createdAt = Timestamp.now();
+        this.isPrivate = isPrivate;
+        if (isPrivate) {
+            this.accessCode = generateAccessCode();
+        } else {
+            this.accessCode = null;
+        }
     }
 
     // Getters and Setters
@@ -143,4 +169,45 @@ public class Course {
         }
         return new Date();
     }
+
+    public boolean isPrivate() {
+        return isPrivate;
+    }
+
+    // Updated setter to handle access code generation properly
+    public void setPrivate(boolean isPrivate) {
+        this.isPrivate = isPrivate;
+        // Only generate access code if setting to private and don't have one already
+        if (isPrivate && (accessCode == null || accessCode.isEmpty())) {
+            this.accessCode = generateAccessCode();
+        } else if (!isPrivate) {
+            this.accessCode = null;
+        }
+    }
+    public String getAccessCode() {
+        return accessCode;
+    }
+
+    public void setAccessCode(String accessCode) {
+        this.accessCode = accessCode;
+    }
+
+
+    // Generate a unique 6-digit access code
+    private String generateAccessCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000); // Generates 6-digit number
+        return String.valueOf(code);
+        //todo truly unique codes
+    }
+
+    // Static method to generate access code for existing courses
+    public static String generateNewAccessCode() {
+        Random random = new Random();
+        int code = 100000 + random.nextInt(900000);
+        return String.valueOf(code);
+        //todo truly unique codes
+
+    }
+
 }
