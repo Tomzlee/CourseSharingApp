@@ -327,6 +327,8 @@ public class EditCourseFragment extends Fragment {
         }
 
         binding.progressBar.setVisibility(View.VISIBLE);
+        binding.editProgressTv.setVisibility(View.VISIBLE);
+        binding.editProgressTv.setText("Starting update...");
         binding.updateCourseButton.setEnabled(false);
 
         String title = binding.courseTitleEt.getText().toString().trim();
@@ -364,28 +366,86 @@ public class EditCourseFragment extends Fragment {
             // Continue with upload even if we can't display sizes
         }
 
-        courseRepository.editCourse(updatedCourse, thumbnailUri, videoUri, new CourseRepository.CourseCallback() {
-            @Override
-            public void onSuccess() {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Course updated successfully", Toast.LENGTH_SHORT).show();
-                requireActivity().onBackPressed();
-            }
+        // Use new method with progress tracking if files are being updated
+        if (thumbnailUri != null || videoUri != null) {
+            courseRepository.editCourseWithProgress(updatedCourse, thumbnailUri, videoUri,
+                    new CourseRepository.EditProgressCallback() {
+                        @Override
+                        public void onThumbnailProgress(int progress) {
+                            requireActivity().runOnUiThread(() -> {
+                                binding.editProgressTv.setText(String.format("Updating thumbnail: %d%%", progress));
+                            });
+                        }
 
-            @Override
-            public void onError(String errorMessage) {
-                binding.progressBar.setVisibility(View.GONE);
-                binding.updateCourseButton.setEnabled(true);
+                        @Override
+                        public void onVideoProgress(int progress) {
+                            requireActivity().runOnUiThread(() -> {
+                                binding.editProgressTv.setText(String.format("Updating video: %d%%", progress));
+                            });
+                        }
 
-                // Check if error is related to file size
-                if (errorMessage.contains("file is too large") || errorMessage.contains("size exceeds")) {
-                    Toast.makeText(requireContext(), "Update failed: File size exceeds the 5GB limit",
-                            Toast.LENGTH_LONG).show();
-                } else {
+                        @Override
+                        public void onThumbnailComplete() {
+                            requireActivity().runOnUiThread(() -> {
+                                binding.editProgressTv.setText("Thumbnail update complete...");
+                            });
+                        }
+
+                        @Override
+                        public void onVideoComplete() {
+                            requireActivity().runOnUiThread(() -> {
+                                binding.editProgressTv.setText("Video update complete...");
+                            });
+                        }
+
+                        @Override
+                        public void onSuccess() {
+                            requireActivity().runOnUiThread(() -> {
+                                binding.progressBar.setVisibility(View.GONE);
+                                binding.editProgressTv.setVisibility(View.GONE);
+                                Toast.makeText(requireContext(), "Course updated successfully", Toast.LENGTH_SHORT).show();
+                                requireActivity().onBackPressed();
+                            });
+                        }
+
+                        @Override
+                        public void onError(String errorMessage) {
+                            requireActivity().runOnUiThread(() -> {
+                                binding.progressBar.setVisibility(View.GONE);
+                                binding.editProgressTv.setVisibility(View.GONE);
+                                binding.updateCourseButton.setEnabled(true);
+
+                                // Check if error is related to file size
+                                if (errorMessage.contains("file is too large") || errorMessage.contains("size exceeds")) {
+                                    Toast.makeText(requireContext(), "Update failed: File size exceeds the 5GB limit",
+                                            Toast.LENGTH_LONG).show();
+                                } else {
+                                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                                }
+                            });
+                        }
+                    });
+        } else {
+            // No files to update, just update course info
+            binding.editProgressTv.setText("Updating course information...");
+            courseRepository.editCourse(updatedCourse, null, null, new CourseRepository.CourseCallback() {
+                @Override
+                public void onSuccess() {
+                    binding.progressBar.setVisibility(View.GONE);
+                    binding.editProgressTv.setVisibility(View.GONE);
+                    Toast.makeText(requireContext(), "Course updated successfully", Toast.LENGTH_SHORT).show();
+                    requireActivity().onBackPressed();
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    binding.progressBar.setVisibility(View.GONE);
+                    binding.editProgressTv.setVisibility(View.GONE);
+                    binding.updateCourseButton.setEnabled(true);
                     Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
                 }
-            }
-        });
+            });
+        }
     }
 
     @Override

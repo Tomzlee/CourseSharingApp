@@ -50,6 +50,12 @@ public class UploadCourseFragment extends Fragment {
     private boolean isPrivate = false;
     private String accessCode;
 
+    // Upload progress tracking
+    private int thumbnailProgress = 0;
+    private int videoProgress = 0;
+    private boolean thumbnailUploadComplete = false;
+    private boolean videoUploadComplete = false;
+
     @Override
     public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -136,17 +142,20 @@ public class UploadCourseFragment extends Fragment {
 
     private void getUsernameFromFirestore() {
         binding.progressBar.setVisibility(View.VISIBLE);
+        binding.uploadProgressTv.setText("Loading user information...");
 
         userRepository.getUserById(currentUser.getUid(), new UserRepository.UserCallback() {
             @Override
             public void onUserLoaded(com.example.coursesharingapp.model.User user) {
                 binding.progressBar.setVisibility(View.GONE);
+                binding.uploadProgressTv.setVisibility(View.GONE);
                 username = user.getUsername();
             }
 
             @Override
             public void onError(String errorMessage) {
                 binding.progressBar.setVisibility(View.GONE);
+                binding.uploadProgressTv.setVisibility(View.GONE);
                 Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
                 requireActivity().onBackPressed();
             }
@@ -400,12 +409,42 @@ public class UploadCourseFragment extends Fragment {
         return isValid;
     }
 
+    private void updateUploadProgress() {
+        if (thumbnailUploadComplete && videoUploadComplete) {
+            binding.uploadProgressTv.setText("Finalizing upload...");
+            return;
+        }
+
+        // Calculate overall progress (thumbnail is typically smaller, so weight it less)
+        // Assuming thumbnail is 10% of total upload, video is 90%
+        int overallProgress = (int) ((thumbnailProgress * 0.1) + (videoProgress * 0.9));
+
+        String progressText;
+        if (!thumbnailUploadComplete && !videoUploadComplete) {
+            progressText = String.format("Uploading thumbnail: %d%%", thumbnailProgress);
+        } else if (thumbnailUploadComplete && !videoUploadComplete) {
+            progressText = String.format("Uploading video: %d%%", videoProgress);
+        } else {
+            progressText = String.format("Upload progress: %d%%", overallProgress);
+        }
+
+        binding.uploadProgressTv.setText(progressText);
+    }
+
     private void validateAndUploadCourse() {
         if (!validateInput()) {
             return;
         }
 
+        // Reset progress tracking
+        thumbnailProgress = 0;
+        videoProgress = 0;
+        thumbnailUploadComplete = false;
+        videoUploadComplete = false;
+
         binding.progressBar.setVisibility(View.VISIBLE);
+        binding.uploadProgressTv.setVisibility(View.VISIBLE);
+        binding.uploadProgressTv.setText("Starting upload...");
         binding.uploadCourseButton.setEnabled(false);
 
         String title = binding.courseTitleEt.getText().toString().trim();
@@ -423,18 +462,17 @@ public class UploadCourseFragment extends Fragment {
 
         // Display file sizes in progress message
         try {
-            StringBuilder uploadMessage = new StringBuilder("Uploading");
+            StringBuilder uploadMessage = new StringBuilder("Starting upload");
             if (isPrivate) {
-                uploadMessage.append(" private course");
+                uploadMessage.append(" of private course");
             } else {
-                uploadMessage.append(" public course");
+                uploadMessage.append(" of public course");
             }
-            uploadMessage.append(": ");
 
             long thumbnailSize = getFileSize(thumbnailUri);
             long videoSize = getFileSize(videoUri);
 
-            uploadMessage.append("Thumbnail (")
+            uploadMessage.append(": Thumbnail (")
                     .append(FileSizeNotificationManager.formatFileSize(thumbnailSize))
                     .append("), Video (")
                     .append(FileSizeNotificationManager.formatFileSize(videoSize))
@@ -446,36 +484,75 @@ public class UploadCourseFragment extends Fragment {
             Log.e(TAG, "Error getting file sizes for upload message: " + e.getMessage());
         }
 
-        courseRepository.createCourse(course, thumbnailUri, videoUri, new CourseRepository.CourseCallback() {
-            @Override
-            public void onSuccess() {
-                binding.progressBar.setVisibility(View.GONE);
+        courseRepository.createCourseWithProgress(course, thumbnailUri, videoUri,
+                new CourseRepository.UploadProgressCallback() {
+                    @Override
+                    public void onThumbnailProgress(int progress) {
+                        requireActivity().runOnUiThread(() -> {
+                            thumbnailProgress = progress;
+                            updateUploadProgress();
+                        });
+                    }
 
-                String successMessage = "Course uploaded successfully";
-                if (isPrivate) {
-                    successMessage += "\nAccess Code: " + accessCode + "\nShare this code with people you want to give access to your course.";
-                }
+                    @Override
+                    public void onVideoProgress(int progress) {
+                        requireActivity().runOnUiThread(() -> {
+                            videoProgress = progress;
+                            updateUploadProgress();
+                        });
+                    }
 
-                Toast.makeText(requireContext(), successMessage, Toast.LENGTH_LONG).show();
-                Navigation.findNavController(requireView()).navigate(R.id.homeFragment);
-            }
+                    @Override
+                    public void onThumbnailComplete() {
+                        requireActivity().runOnUiThread(() -> {
+                            thumbnailUploadComplete = true;
+                            updateUploadProgress();
+                        });
+                    }
 
-            @Override
-            public void onError(String errorMessage) {
-                binding.progressBar.setVisibility(View.GONE);
-                binding.uploadCourseButton.setEnabled(true);
+                    @Override
+                    public void onVideoComplete() {
+                        requireActivity().runOnUiThread(() -> {
+                            videoUploadComplete = true;
+                            updateUploadProgress();
+                        });
+                    }
 
-                // Check if error is related to file size
-                if (errorMessage.contains("file is too large") || errorMessage.contains("size exceeds")) {
-                    Toast.makeText(requireContext(), "Upload failed: File size exceeds the 5GB limit",
-                            Toast.LENGTH_LONG).show();
-                } else {
-                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-                }
+                    @Override
+                    public void onSuccess() {
+                        requireActivity().runOnUiThread(() -> {
+                            binding.progressBar.setVisibility(View.GONE);
+                            binding.uploadProgressTv.setVisibility(View.GONE);
 
-                Log.e(TAG, "Upload error: " + errorMessage);
-            }
-        });
+                            String successMessage = "Course uploaded successfully!";
+                            if (isPrivate) {
+                                successMessage += "\nAccess Code: " + accessCode + "\nShare this code with people you want to give access to your course.";
+                            }
+
+                            Toast.makeText(requireContext(), successMessage, Toast.LENGTH_LONG).show();
+                            Navigation.findNavController(requireView()).navigate(R.id.homeFragment);
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        requireActivity().runOnUiThread(() -> {
+                            binding.progressBar.setVisibility(View.GONE);
+                            binding.uploadProgressTv.setVisibility(View.GONE);
+                            binding.uploadCourseButton.setEnabled(true);
+
+                            // Check if error is related to file size
+                            if (errorMessage.contains("file is too large") || errorMessage.contains("size exceeds")) {
+                                Toast.makeText(requireContext(), "Upload failed: File size exceeds the 5GB limit",
+                                        Toast.LENGTH_LONG).show();
+                            } else {
+                                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                            }
+
+                            Log.e(TAG, "Upload error: " + errorMessage);
+                        });
+                    }
+                });
     }
 
     @Override

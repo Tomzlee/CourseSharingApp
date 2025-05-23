@@ -62,6 +62,25 @@ public class CourseRepository {
         void onError(String errorMessage);
     }
 
+    // New interfaces for progress tracking
+    public interface UploadProgressCallback {
+        void onThumbnailProgress(int progress);
+        void onVideoProgress(int progress);
+        void onThumbnailComplete();
+        void onVideoComplete();
+        void onSuccess();
+        void onError(String errorMessage);
+    }
+
+    public interface EditProgressCallback {
+        void onThumbnailProgress(int progress);
+        void onVideoProgress(int progress);
+        void onThumbnailComplete();
+        void onVideoComplete();
+        void onSuccess();
+        void onError(String errorMessage);
+    }
+
     // Get all PUBLIC courses only (no filter)
     public void getAllCourses(CoursesCallback callback) {
         firestore.collection("courses")
@@ -339,6 +358,7 @@ public class CourseRepository {
                 });
     }
 
+    // Original createCourse method - kept for backward compatibility
     public void createCourse(Course course, Uri thumbnailUri, Uri videoUri, CourseCallback callback) {
         // First, add the course to Firestore
         DocumentReference courseRef = firestore.collection("courses").document();
@@ -385,6 +405,56 @@ public class CourseRepository {
         });
     }
 
+    // New method for course creation with progress tracking
+    public void createCourseWithProgress(Course course, Uri thumbnailUri, Uri videoUri, UploadProgressCallback callback) {
+        // First, add the course to Firestore
+        DocumentReference courseRef = firestore.collection("courses").document();
+        course.setId(courseRef.getId());
+
+        // Upload thumbnail and video with progress tracking
+        uploadThumbnailWithProgress(course.getId(), thumbnailUri, new UploadCallback() {
+            @Override
+            public void onProgress(int progress) {
+                callback.onThumbnailProgress(progress);
+            }
+
+            @Override
+            public void onSuccess(String thumbnailUrl) {
+                callback.onThumbnailComplete();
+                course.setThumbnailUrl(thumbnailUrl);
+
+                uploadVideoWithProgress(course.getId(), videoUri, new UploadCallback() {
+                    @Override
+                    public void onProgress(int progress) {
+                        callback.onVideoProgress(progress);
+                    }
+
+                    @Override
+                    public void onSuccess(String videoUrl) {
+                        callback.onVideoComplete();
+                        course.setVideoUrl(videoUrl);
+
+                        // Save course with URLs to Firestore
+                        courseRef.set(course)
+                                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        callback.onError(errorMessage);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
+    }
+
+    // Original editCourse method - kept for backward compatibility
     public void editCourse(Course course, Uri thumbnailUri, Uri videoUri, CourseCallback callback) {
         if (course.getId() == null || course.getId().isEmpty()) {
             callback.onError("Course ID is required for editing");
@@ -471,6 +541,137 @@ public class CourseRepository {
         }
     }
 
+    // New method for course editing with progress tracking
+    public void editCourseWithProgress(Course course, Uri thumbnailUri, Uri videoUri, EditProgressCallback callback) {
+        if (course.getId() == null || course.getId().isEmpty()) {
+            callback.onError("Course ID is required for editing");
+            return;
+        }
+
+        // Check if there are new files to upload
+        if (thumbnailUri != null && videoUri != null) {
+            uploadThumbnailWithProgress(course.getId(), thumbnailUri, new UploadCallback() {
+                @Override
+                public void onProgress(int progress) {
+                    callback.onThumbnailProgress(progress);
+                }
+
+                @Override
+                public void onSuccess(String thumbnailUrl) {
+                    callback.onThumbnailComplete();
+                    course.setThumbnailUrl(thumbnailUrl);
+
+                    uploadVideoWithProgress(course.getId(), videoUri, new UploadCallback() {
+                        @Override
+                        public void onProgress(int progress) {
+                            callback.onVideoProgress(progress);
+                        }
+
+                        @Override
+                        public void onSuccess(String videoUrl) {
+                            callback.onVideoComplete();
+                            course.setVideoUrl(videoUrl);
+                            updateCourseInFirestore(course, new CourseCallback() {
+                                @Override
+                                public void onSuccess() {
+                                    callback.onSuccess();
+                                }
+
+                                @Override
+                                public void onError(String errorMessage) {
+                                    callback.onError(errorMessage);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(String errorMessage) {
+                            callback.onError(errorMessage);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        } else if (thumbnailUri != null) {
+            // Upload only new thumbnail
+            uploadThumbnailWithProgress(course.getId(), thumbnailUri, new UploadCallback() {
+                @Override
+                public void onProgress(int progress) {
+                    callback.onThumbnailProgress(progress);
+                }
+
+                @Override
+                public void onSuccess(String thumbnailUrl) {
+                    callback.onThumbnailComplete();
+                    course.setThumbnailUrl(thumbnailUrl);
+                    updateCourseInFirestore(course, new CourseCallback() {
+                        @Override
+                        public void onSuccess() {
+                            callback.onSuccess();
+                        }
+
+                        @Override
+                        public void onError(String errorMessage) {
+                            callback.onError(errorMessage);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        } else if (videoUri != null) {
+            // Upload only new video
+            uploadVideoWithProgress(course.getId(), videoUri, new UploadCallback() {
+                @Override
+                public void onProgress(int progress) {
+                    callback.onVideoProgress(progress);
+                }
+
+                @Override
+                public void onSuccess(String videoUrl) {
+                    callback.onVideoComplete();
+                    course.setVideoUrl(videoUrl);
+                    updateCourseInFirestore(course, new CourseCallback() {
+                        @Override
+                        public void onSuccess() {
+                            callback.onSuccess();
+                        }
+
+                        @Override
+                        public void onError(String errorMessage) {
+                            callback.onError(errorMessage);
+                        }
+                    });
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        } else {
+            // No new files, just update the course data
+            updateCourseInFirestore(course, new CourseCallback() {
+                @Override
+                public void onSuccess() {
+                    callback.onSuccess();
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError(errorMessage);
+                }
+            });
+        }
+    }
+
     private void updateCourseInFirestore(Course course, CourseCallback callback) {
         firestore.collection("courses")
                 .document(course.getId())
@@ -479,6 +680,7 @@ public class CourseRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
+    // Original upload methods without progress tracking
     private void uploadThumbnail(String courseId, Uri thumbnailUri, UploadCallback callback) {
         String fileName = "thumbnails/" + courseId + "_" + UUID.randomUUID().toString();
         StorageReference storageRef = storage.getReference().child(fileName);
@@ -487,7 +689,6 @@ public class CourseRepository {
         com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
                 .setContentType("image/*")
                 .build();
-
 
         UploadTask uploadTask = storageRef.putFile(thumbnailUri, metadata);
 
@@ -509,6 +710,95 @@ public class CourseRepository {
         });
     }
 
+    private void uploadVideo(String courseId, Uri videoUri, UploadCallback callback) {
+        String fileName = "videos/" + courseId + "_" + UUID.randomUUID().toString();
+        StorageReference storageRef = storage.getReference().child(fileName);
+
+        // Add metadata to restrict file size
+        com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
+                .setContentType("video/*")
+                .build();
+
+        UploadTask uploadTask = storageRef.putFile(videoUri, metadata);
+
+        uploadTask.addOnProgressListener(taskSnapshot -> {
+            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+            callback.onProgress((int) progress);
+        }).continueWithTask(task -> {
+            if (!task.isSuccessful()) {
+                throw task.getException();
+            }
+            return storageRef.getDownloadUrl();
+        }).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Uri downloadUri = task.getResult();
+                callback.onSuccess(downloadUri.toString());
+            } else {
+                callback.onError(task.getException().getMessage());
+            }
+        });
+    }
+
+    // New upload methods with progress tracking
+    private void uploadThumbnailWithProgress(String courseId, Uri thumbnailUri, UploadCallback callback) {
+        String fileName = "thumbnails/" + courseId + "_" + UUID.randomUUID().toString();
+        StorageReference storageRef = storage.getReference().child(fileName);
+
+        // Add metadata to restrict file size
+        com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
+                .setContentType("image/*")
+                .build();
+
+        UploadTask uploadTask = storageRef.putFile(thumbnailUri, metadata);
+
+        uploadTask.addOnProgressListener(taskSnapshot -> {
+            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+            callback.onProgress((int) progress);
+        }).continueWithTask(task -> {
+            if (!task.isSuccessful()) {
+                throw task.getException();
+            }
+            return storageRef.getDownloadUrl();
+        }).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Uri downloadUri = task.getResult();
+                callback.onSuccess(downloadUri.toString());
+            } else {
+                callback.onError(task.getException().getMessage());
+            }
+        });
+    }
+
+    private void uploadVideoWithProgress(String courseId, Uri videoUri, UploadCallback callback) {
+        String fileName = "videos/" + courseId + "_" + UUID.randomUUID().toString();
+        StorageReference storageRef = storage.getReference().child(fileName);
+
+        // Add metadata to restrict file size
+        com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
+                .setContentType("video/*")
+                .build();
+
+        UploadTask uploadTask = storageRef.putFile(videoUri, metadata);
+
+        uploadTask.addOnProgressListener(taskSnapshot -> {
+            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
+            callback.onProgress((int) progress);
+        }).continueWithTask(task -> {
+            if (!task.isSuccessful()) {
+                throw task.getException();
+            }
+            return storageRef.getDownloadUrl();
+        }).addOnCompleteListener(task -> {
+            if (task.isSuccessful()) {
+                Uri downloadUri = task.getResult();
+                callback.onSuccess(downloadUri.toString());
+            } else {
+                callback.onError(task.getException().getMessage());
+            }
+        });
+    }
+
+    // Delete course method
     public void deleteCourse(String courseId, CourseCallback callback) {
         // First, get the course to find associated files
         getCourseById(courseId, new SingleCourseCallback() {
@@ -589,7 +879,6 @@ public class CourseRepository {
             }
         });
     }
-
     // Delete all saved references to a course when the course is deleted
     private void deleteSavedCourseReferences(String courseId, CourseCallback callback) {
         firestore.collection("savedCourses")
@@ -633,34 +922,5 @@ public class CourseRepository {
             Log.e(TAG, "Invalid file URL: " + fileUrl);
             callback.onError("Invalid file URL");
         }
-    }
-
-    private void uploadVideo(String courseId, Uri videoUri, UploadCallback callback) {
-        String fileName = "videos/" + courseId + "_" + UUID.randomUUID().toString();
-        StorageReference storageRef = storage.getReference().child(fileName);
-
-        // Add metadata to restrict file size
-        com.google.firebase.storage.StorageMetadata metadata = new com.google.firebase.storage.StorageMetadata.Builder()
-                .setContentType("video/*")
-                .build();
-
-        UploadTask uploadTask = storageRef.putFile(videoUri, metadata);
-
-        uploadTask.addOnProgressListener(taskSnapshot -> {
-            double progress = (100.0 * taskSnapshot.getBytesTransferred()) / taskSnapshot.getTotalByteCount();
-            callback.onProgress((int) progress);
-        }).continueWithTask(task -> {
-            if (!task.isSuccessful()) {
-                throw task.getException();
-            }
-            return storageRef.getDownloadUrl();
-        }).addOnCompleteListener(task -> {
-            if (task.isSuccessful()) {
-                Uri downloadUri = task.getResult();
-                callback.onSuccess(downloadUri.toString());
-            } else {
-                callback.onError(task.getException().getMessage());
-            }
-        });
     }
 }
