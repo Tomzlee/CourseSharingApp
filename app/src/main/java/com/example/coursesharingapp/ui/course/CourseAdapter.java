@@ -1,9 +1,12 @@
 package com.example.coursesharingapp.ui.course;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -33,6 +36,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
     private FirebaseUser currentUser;
     private CourseRepository courseRepository;
     private Set<String> savedCourseIds = new HashSet<>();
+    private boolean isMyCoursesView; // New flag to track if this is "My Courses" view
 
     // Constructor with delete and edit functionality
     public CourseAdapter(Context context, List<Course> courses, OnCourseClickListener clickListener,
@@ -45,6 +49,7 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
         this.editListener = editListener;
         this.showDeleteButton = showDeleteButton;
         this.showEditButton = showEditButton;
+        this.isMyCoursesView = showDeleteButton || showEditButton; // If showing edit/delete, it's My Courses
 
         // Initialize Firebase-related objects
         AuthRepository authRepository = new AuthRepository();
@@ -129,6 +134,22 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
                 binding.savedIndicatorIv.setVisibility(View.GONE);
             }
 
+            // Handle access code display for private courses in My Courses view
+            if (isMyCoursesView && course.isPrivate() && course.getAccessCode() != null &&
+                    currentUser != null && currentUser.getUid().equals(course.getUploaderUid())) {
+
+                // Show access code section
+                binding.accessCodeLayout.setVisibility(View.VISIBLE);
+                binding.accessCodeTv.setText(course.getAccessCode());
+
+                // Set up copy functionality for the entire access code layout
+                binding.accessCodeLayout.setOnClickListener(v -> copyAccessCodeToClipboard(course.getAccessCode()));
+
+            } else {
+                // Hide access code section for public courses or when not in My Courses
+                binding.accessCodeLayout.setVisibility(View.GONE);
+            }
+
             // Set category chip
             if (course.getCategory() != null && !course.getCategory().isEmpty()) {
                 binding.courseCategoryChip.setText(course.getCategory());
@@ -175,6 +196,14 @@ public class CourseAdapter extends RecyclerView.Adapter<CourseAdapter.CourseView
             } else {
                 binding.editCourseButton.setVisibility(View.GONE);
             }
+        }
+
+        private void copyAccessCodeToClipboard(String accessCode) {
+            ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("Course Access Code", accessCode);
+            clipboard.setPrimaryClip(clip);
+
+            Toast.makeText(context, "Access code '" + accessCode + "' copied to clipboard!", Toast.LENGTH_SHORT).show();
         }
 
         private int getCategoryColor(String category) {

@@ -179,7 +179,7 @@ public class CourseRepository {
     public void validateCourseAccessCode(String accessCode, AccessCodeValidationCallback callback) {
         firestore.collection("courses")
                 .whereEqualTo("accessCode", accessCode)
-                .whereEqualTo("isPrivate", true)
+                .whereEqualTo("private", true)
                 .limit(1)
                 .get()
                 .addOnCompleteListener(task -> {

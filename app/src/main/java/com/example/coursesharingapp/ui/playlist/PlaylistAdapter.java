@@ -1,9 +1,12 @@
 package com.example.coursesharingapp.ui.playlist;
 
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
@@ -31,6 +34,7 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
     private FirebaseUser currentUser;
     private PlaylistRepository playlistRepository;
     private Set<String> savedPlaylistIds = new HashSet<>();
+    private boolean isMyPlaylistsView; // New flag to track if this is "My Playlists" view
 
     public PlaylistAdapter(Context context, List<Playlist> playlists,
                            OnPlaylistClickListener listener, OnPlaylistDeleteListener deleteListener,
@@ -44,6 +48,7 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
         this.showDeleteButton = showDeleteButton;
         this.showEditButton = showEditButton;
         this.currentUserUid = currentUserUid;
+        this.isMyPlaylistsView = showDeleteButton || showEditButton; // If showing edit/delete, it's My Playlists
 
         // Initialize Firebase-related objects
         AuthRepository authRepository = new AuthRepository();
@@ -125,7 +130,23 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
             int courseCount = playlist.getCoursesCount();
             binding.coursesCountTv.setText(courseCount + (courseCount == 1 ? " course" : " courses"));
 
-            // Set description if available
+            // Handle access code display for private playlists in My Playlists view
+            if (isMyPlaylistsView && playlist.isPrivate() && playlist.getAccessCode() != null &&
+                    currentUser != null && currentUser.getUid().equals(playlist.getCreatorUid())) {
+
+                // Show access code section
+                binding.accessCodeLayout.setVisibility(View.VISIBLE);
+                binding.accessCodeTv.setText(playlist.getAccessCode());
+
+                // Set up copy functionality for the entire access code layout
+                binding.accessCodeLayout.setOnClickListener(v -> copyAccessCodeToClipboard(playlist.getAccessCode()));
+
+            } else {
+                // Hide access code section for public playlists or when not in My Playlists
+                binding.accessCodeLayout.setVisibility(View.GONE);
+            }
+
+            // Set description if available - constrain it properly when access code is shown
             if (playlist.getDescription() != null && !playlist.getDescription().isEmpty()) {
                 binding.playlistDescriptionTv.setText(playlist.getDescription());
             } else {
@@ -157,6 +178,14 @@ public class PlaylistAdapter extends RecyclerView.Adapter<PlaylistAdapter.Playli
                     listener.onPlaylistClick(playlist, position);
                 }
             });
+        }
+
+        private void copyAccessCodeToClipboard(String accessCode) {
+            ClipboardManager clipboard = (ClipboardManager) context.getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("Playlist Access Code", accessCode);
+            clipboard.setPrimaryClip(clip);
+
+            Toast.makeText(context, "Access code '" + accessCode + "' copied to clipboard!", Toast.LENGTH_SHORT).show();
         }
     }
 

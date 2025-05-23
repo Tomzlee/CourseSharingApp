@@ -132,4 +132,11 @@
     <string name="playlist_created_private_success">Playlist created successfully!\nAccess Code: %1$s\nShare this code with people you want to give access to your playlist.</string>
     <string name="private_content_indicator">🔒 Private</string>
     <string name="public_content_indicator">🌐 Public</string>
+
+    <!-- Access Code Copy Functionality -->
+    <string name="copy_access_code">Copy Access Code</string>
+    <string name="access_code_copied">Access code \'%1$s\' copied to clipboard!</string>
+    <string name="access_code_copy_help">Tap to copy • Share with people to give access</string>
+    <string name="course_access_code_copied">Course access code copied!</string>
+    <string name="playlist_access_code_copied">Playlist access code copied!</string>
 </resources>

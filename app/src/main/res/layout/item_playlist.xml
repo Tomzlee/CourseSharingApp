@@ -92,6 +92,60 @@
             app:layout_constraintTop_toTopOf="@+id/playlist_creator_tv"
             tools:text="5 courses" />
 
+        <!-- Access Code Section (for private playlists in My Playlists) -->
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:id="@+id/access_code_layout"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/bg_course_count"
+            android:padding="8dp"
+            android:visibility="gone"
+            android:clickable="true"
+            android:focusable="true"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@+id/playlist_creator_tv">
+
+            <TextView
+                android:id="@+id/access_code_label_tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Access Code:"
+                android:textColor="@android:color/white"
+                android:textSize="12sp"
+                android:textStyle="bold"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <TextView
+                android:id="@+id/access_code_tv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:padding="4dp"
+                android:textColor="@android:color/white"
+                android:textSize="14sp"
+                android:textStyle="bold"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toEndOf="@+id/access_code_label_tv"
+                app:layout_constraintTop_toTopOf="parent"
+                tools:text="123456" />
+
+            <TextView
+                android:id="@+id/access_code_help_tv"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:text="Tap to copy • Share with people to give access"
+                android:textColor="@android:color/white"
+                android:textSize="10sp"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@+id/access_code_label_tv" />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
         <TextView
             android:id="@+id/playlist_description_tv"
             android:layout_width="0dp"
@@ -101,7 +155,7 @@
             android:maxLines="2"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintTop_toBottomOf="@+id/playlist_creator_tv"
+            app:layout_constraintTop_toBottomOf="@+id/access_code_layout"
             tools:text="A collection of beginner-friendly programming courses covering various languages and concepts." />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
