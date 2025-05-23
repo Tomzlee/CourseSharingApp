@@ -339,34 +339,46 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
     private void deletePlaylist(Playlist playlist, int position) {
         binding.progressBar.setVisibility(View.VISIBLE);
 
-        playlistRepository.deletePlaylist(playlist.getId(), new PlaylistRepository.PlaylistCallback() {
-            @Override
-            public void onSuccess() {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), "Playlist deleted successfully", Toast.LENGTH_SHORT).show();
+        // Use the new method with progress tracking
+        playlistRepository.deletePlaylistWithProgress(playlist.getId(),
+                new PlaylistRepository.PlaylistDeletionProgressCallback() {
+                    @Override
+                    public void onProgress(String message) {
+                        // You could update a progress text view here if needed
+                        Log.d(TAG, "Delete progress: " + message);
+                    }
 
-                // Remove the playlist from the list and refresh the adapter
-                playlistsList.remove(position);
-                playlistAdapter.notifyItemRemoved(position);
+                    @Override
+                    public void onSuccess() {
+                        requireActivity().runOnUiThread(() -> {
+                            binding.progressBar.setVisibility(View.GONE);
+                            Toast.makeText(requireContext(), "Playlist deleted successfully", Toast.LENGTH_SHORT).show();
 
-                // Check if list is empty
-                if (playlistsList.isEmpty()) {
-                    binding.noPlaylistsTv.setVisibility(View.VISIBLE);
-                    binding.playlistsRecyclerView.setVisibility(View.GONE);
-                }
+                            // Remove the playlist from the list and refresh the adapter
+                            playlistsList.remove(position);
+                            playlistAdapter.notifyItemRemoved(position);
 
-                // If search is active, refresh the search
-                if (isSearchActive) {
-                    performSearch(currentSearchQuery);
-                }
-            }
+                            // Check if list is empty
+                            if (playlistsList.isEmpty()) {
+                                binding.noPlaylistsTv.setVisibility(View.VISIBLE);
+                                binding.playlistsRecyclerView.setVisibility(View.GONE);
+                            }
 
-            @Override
-            public void onError(String errorMessage) {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-            }
-        });
+                            // If search is active, refresh the search
+                            if (isSearchActive) {
+                                performSearch(currentSearchQuery);
+                            }
+                        });
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        requireActivity().runOnUiThread(() -> {
+                            binding.progressBar.setVisibility(View.GONE);
+                            Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                        });
+                    }
+                });
     }
 
     // Validate input for playlist creation/editing
@@ -384,44 +396,77 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         return true;
     }
 
-    private void createPlaylist(String title, String description, List<String> courseIds, Dialog dialog) {
-        binding.progressBar.setVisibility(View.VISIBLE);
+    private void createPlaylist(String title, String description, List<String> courseIds, Dialog dialog,
+                                DialogCreatePlaylistBinding dialogBinding, boolean isPrivate) {
+        dialogBinding.progressBar.setVisibility(View.VISIBLE);
+        dialogBinding.createPlaylistButton.setEnabled(false);
 
         // First get the username from Firestore
         userRepository.getUserById(currentUser.getUid(), new UserRepository.UserCallback() {
             @Override
             public void onUserLoaded(User user) {
-                // Now create the playlist with the username
-                Playlist playlist = new Playlist(title, description, currentUser.getUid(), user.getUsername());
+                // Create the playlist with the username and privacy settings
+                Playlist playlist = new Playlist(title, description, currentUser.getUid(), user.getUsername(), isPrivate);
                 playlist.setCourseIds(courseIds);
 
-                playlistRepository.createPlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
-                    @Override
-                    public void onSuccess() {
-                        binding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), "Playlist created successfully", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
+                // Use the new method with progress tracking
+                playlistRepository.createPlaylistWithProgress(playlist,
+                        new PlaylistRepository.PlaylistCreationProgressCallback() {
+                            @Override
+                            public void onProgress(String message) {
+                                requireActivity().runOnUiThread(() -> {
+                                    if (dialogBinding.progressTextTv != null) {
+                                        dialogBinding.progressTextTv.setVisibility(View.VISIBLE);
+                                        dialogBinding.progressTextTv.setText(message);
+                                    }
+                                    Log.d(TAG, "Create progress: " + message);
+                                });
+                            }
 
-                        // Reload the current tab
-                        if (binding.tabs.getSelectedTabPosition() == TAB_ALL_PLAYLISTS) {
-                            loadAllPlaylists();
-                        } else {
-                            loadMyPlaylists();
-                        }
-                    }
+                            @Override
+                            public void onSuccess() {
+                                requireActivity().runOnUiThread(() -> {
+                                    dialogBinding.progressBar.setVisibility(View.GONE);
+                                    dialogBinding.progressTextTv.setVisibility(View.GONE);
 
-                    @Override
-                    public void onError(String errorMessage) {
-                        binding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-                    }
-                });
+                                    String successMessage = "Playlist created successfully!";
+                                    if (isPrivate && playlist.getAccessCode() != null) {
+                                        successMessage += "\nAccess Code: " + playlist.getAccessCode() +
+                                                "\nShare this code with people you want to give access to your playlist.";
+                                    }
+
+                                    Toast.makeText(requireContext(), successMessage, Toast.LENGTH_LONG).show();
+                                    dialog.dismiss();
+
+                                    // Reload the current tab
+                                    if (binding.tabs.getSelectedTabPosition() == TAB_ALL_PLAYLISTS) {
+                                        loadAllPlaylists();
+                                    } else {
+                                        loadMyPlaylists();
+                                    }
+                                });
+                            }
+
+                            @Override
+                            public void onError(String errorMessage) {
+                                requireActivity().runOnUiThread(() -> {
+                                    dialogBinding.progressBar.setVisibility(View.GONE);
+                                    dialogBinding.progressTextTv.setVisibility(View.GONE);
+                                    dialogBinding.createPlaylistButton.setEnabled(true);
+                                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                                });
+                            }
+                        });
             }
 
             @Override
             public void onError(String errorMessage) {
-                binding.progressBar.setVisibility(View.GONE);
-                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                requireActivity().runOnUiThread(() -> {
+                    dialogBinding.progressBar.setVisibility(View.GONE);
+                    dialogBinding.progressTextTv.setVisibility(View.GONE);
+                    dialogBinding.createPlaylistButton.setEnabled(true);
+                    Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                });
             }
         });
     }
@@ -588,6 +633,26 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
         RecyclerView selectCoursesRecyclerView = dialogBinding.selectCoursesRecyclerView;
         selectCoursesRecyclerView.setLayoutManager(new LinearLayoutManager(requireContext()));
 
+        // Setup privacy options
+        boolean[] isPrivate = {false}; // Use array to allow modification in inner classes
+        String[] accessCode = {null};
+
+        dialogBinding.privacyRadioGroup.setOnCheckedChangeListener((group, checkedId) -> {
+            if (checkedId == R.id.public_radio_button) {
+                isPrivate[0] = false;
+                accessCode[0] = null;
+                dialogBinding.accessCodeCard.setVisibility(View.GONE);
+            } else if (checkedId == R.id.private_radio_button) {
+                isPrivate[0] = true;
+                accessCode[0] = Playlist.generateNewAccessCode();
+                dialogBinding.accessCodeDisplayTv.setText(accessCode[0]);
+                dialogBinding.accessCodeCard.setVisibility(View.VISIBLE);
+            }
+        });
+
+        // Default to public
+        dialogBinding.publicRadioButton.setChecked(true);
+
         // Load user's courses
         dialogBinding.progressBar.setVisibility(View.VISIBLE);
 
@@ -649,7 +714,7 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
                         List<String> selectedCourseIds = adapter.getSelectedCourseIds();
 
                         if (validateInput(title, selectedCourseIds)) {
-                            createPlaylist(title, description, selectedCourseIds, dialog);
+                            createPlaylist(title, description, selectedCourseIds, dialog, dialogBinding, isPrivate[0]);
                         }
                     });
                 }
@@ -903,38 +968,55 @@ public class PlaylistsFragment extends Fragment implements PlaylistAdapter.OnPla
 
             // Show progress
             dialogBinding.progressBar.setVisibility(View.VISIBLE);
+            dialogBinding.updatePlaylistButton.setEnabled(false);
 
-            // Save to database
-            playlistRepository.updatePlaylist(playlist, new PlaylistRepository.PlaylistCallback() {
-                @Override
-                public void onSuccess() {
-                    Log.d(TAG, "Playlist updated successfully");
-                    requireActivity().runOnUiThread(() -> {
-                        dialogBinding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(),
-                                "Playlist updated successfully", Toast.LENGTH_SHORT).show();
-                        dialog.dismiss();
+            // Use the new method with progress tracking
+            playlistRepository.updatePlaylistWithProgress(playlist,
+                    new PlaylistRepository.PlaylistUpdateProgressCallback() {
+                        @Override
+                        public void onProgress(String message) {
+                            requireActivity().runOnUiThread(() -> {
+                                if (dialogBinding.progressTextTv != null) {
+                                    dialogBinding.progressTextTv.setVisibility(View.VISIBLE);
+                                    dialogBinding.progressTextTv.setText(message);
+                                }
+                            });
+                            Log.d(TAG, "Update progress: " + message);
+                        }
 
-                        // Update UI list
-                        playlistsList.set(position, playlist);
-                        playlistAdapter.notifyItemChanged(position);
+                        @Override
+                        public void onSuccess() {
+                            Log.d(TAG, "Playlist updated successfully");
+                            requireActivity().runOnUiThread(() -> {
+                                dialogBinding.progressBar.setVisibility(View.GONE);
+                                dialogBinding.progressTextTv.setVisibility(View.GONE);
+                                dialogBinding.updatePlaylistButton.setEnabled(true);
+                                Toast.makeText(requireContext(),
+                                        "Playlist updated successfully", Toast.LENGTH_SHORT).show();
+                                dialog.dismiss();
 
-                        // Refresh results if in search mode
-                        if (isSearchActive) {
-                            performSearch(currentSearchQuery);
+                                // Update UI list
+                                playlistsList.set(position, playlist);
+                                playlistAdapter.notifyItemChanged(position);
+
+                                // Refresh results if in search mode
+                                if (isSearchActive) {
+                                    performSearch(currentSearchQuery);
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(String errorMessage) {
+                            Log.e(TAG, "Error updating playlist: " + errorMessage);
+                            requireActivity().runOnUiThread(() -> {
+                                dialogBinding.progressBar.setVisibility(View.GONE);
+                                dialogBinding.progressTextTv.setVisibility(View.GONE);
+                                dialogBinding.updatePlaylistButton.setEnabled(true);
+                                Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
+                            });
                         }
                     });
-                }
-
-                @Override
-                public void onError(String errorMessage) {
-                    Log.e(TAG, "Error updating playlist: " + errorMessage);
-                    requireActivity().runOnUiThread(() -> {
-                        dialogBinding.progressBar.setVisibility(View.GONE);
-                        Toast.makeText(requireContext(), errorMessage, Toast.LENGTH_SHORT).show();
-                    });
-                }
-            });
         });
 
         // Set up cancel button

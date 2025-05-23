@@ -54,6 +54,25 @@ public class PlaylistRepository {
         void onError(String errorMessage);
     }
 
+    // New interfaces for progress tracking
+    public interface PlaylistCreationProgressCallback {
+        void onProgress(String message);
+        void onSuccess();
+        void onError(String errorMessage);
+    }
+
+    public interface PlaylistUpdateProgressCallback {
+        void onProgress(String message);
+        void onSuccess();
+        void onError(String errorMessage);
+    }
+
+    public interface PlaylistDeletionProgressCallback {
+        void onProgress(String message);
+        void onSuccess();
+        void onError(String errorMessage);
+    }
+
     // Get all PUBLIC playlists only
     public void getAllPlaylists(PlaylistsCallback callback) {
         firestore.collection("playlists")
@@ -256,7 +275,7 @@ public class PlaylistRepository {
         });
     }
 
-    // Create a new playlist
+    // Original createPlaylist method - kept for backward compatibility
     public void createPlaylist(Playlist playlist, PlaylistCallback callback) {
         DocumentReference playlistRef = firestore.collection("playlists").document();
         playlist.setId(playlistRef.getId());
@@ -266,13 +285,81 @@ public class PlaylistRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    // Update an existing playlist
+    // New method for playlist creation with progress tracking
+    public void createPlaylistWithProgress(Playlist playlist, PlaylistCreationProgressCallback callback) {
+        callback.onProgress("Preparing playlist creation...");
+
+        DocumentReference playlistRef = firestore.collection("playlists").document();
+        playlist.setId(playlistRef.getId());
+
+        callback.onProgress("Validating playlist data...");
+
+        // Validate playlist has required fields
+        if (playlist.getTitle() == null || playlist.getTitle().trim().isEmpty()) {
+            callback.onError("Playlist title is required");
+            return;
+        }
+
+        if (playlist.getCourseIds() == null || playlist.getCourseIds().size() < 2) {
+            callback.onError("Playlist must contain at least 2 courses");
+            return;
+        }
+
+        callback.onProgress("Creating playlist in database...");
+
+        playlistRef.set(playlist)
+                .addOnSuccessListener(aVoid -> {
+                    callback.onProgress("Playlist created successfully!");
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    callback.onError("Failed to create playlist: " + e.getMessage());
+                });
+    }
+
+    // Original updatePlaylist method - kept for backward compatibility
     public void updatePlaylist(Playlist playlist, PlaylistCallback callback) {
         firestore.collection("playlists")
                 .document(playlist.getId())
                 .set(playlist)
                 .addOnSuccessListener(aVoid -> callback.onSuccess())
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // New method for playlist update with progress tracking
+    public void updatePlaylistWithProgress(Playlist playlist, PlaylistUpdateProgressCallback callback) {
+        callback.onProgress("Preparing playlist update...");
+
+        if (playlist.getId() == null || playlist.getId().isEmpty()) {
+            callback.onError("Playlist ID is required for update");
+            return;
+        }
+
+        callback.onProgress("Validating playlist data...");
+
+        // Validate playlist has required fields
+        if (playlist.getTitle() == null || playlist.getTitle().trim().isEmpty()) {
+            callback.onError("Playlist title is required");
+            return;
+        }
+
+        if (playlist.getCourseIds() == null || playlist.getCourseIds().size() < 2) {
+            callback.onError("Playlist must contain at least 2 courses");
+            return;
+        }
+
+        callback.onProgress("Updating playlist in database...");
+
+        firestore.collection("playlists")
+                .document(playlist.getId())
+                .set(playlist)
+                .addOnSuccessListener(aVoid -> {
+                    callback.onProgress("Playlist updated successfully!");
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    callback.onError("Failed to update playlist: " + e.getMessage());
+                });
     }
 
     // Add a course to a playlist
@@ -307,7 +394,7 @@ public class PlaylistRepository {
         });
     }
 
-    // Delete a playlist
+    // Original deletePlaylist method - kept for backward compatibility
     public void deletePlaylist(String playlistId, PlaylistCallback callback) {
         firestore.collection("playlists")
                 .document(playlistId)
@@ -317,6 +404,30 @@ public class PlaylistRepository {
                     deleteSavedPlaylistReferences(playlistId, callback);
                 })
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
+    }
+
+    // New method for playlist deletion with progress tracking
+    public void deletePlaylistWithProgress(String playlistId, PlaylistDeletionProgressCallback callback) {
+        callback.onProgress("Preparing to delete playlist...");
+
+        if (playlistId == null || playlistId.isEmpty()) {
+            callback.onError("Playlist ID is required for deletion");
+            return;
+        }
+
+        callback.onProgress("Deleting playlist from database...");
+
+        firestore.collection("playlists")
+                .document(playlistId)
+                .delete()
+                .addOnSuccessListener(aVoid -> {
+                    callback.onProgress("Removing saved references...");
+                    // After deleting the playlist, also delete all saved references
+                    deleteSavedPlaylistReferencesWithProgress(playlistId, callback);
+                })
+                .addOnFailureListener(e -> {
+                    callback.onError("Failed to delete playlist: " + e.getMessage());
+                });
     }
 
     // Delete all saved references to a playlist when the playlist is deleted
@@ -343,6 +454,42 @@ public class PlaylistRepository {
                                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
                     } else {
                         callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // New method for deleting saved references with progress tracking
+    private void deleteSavedPlaylistReferencesWithProgress(String playlistId, PlaylistDeletionProgressCallback callback) {
+        firestore.collection("savedPlaylists")
+                .whereEqualTo("playlistId", playlistId)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            callback.onProgress("Playlist deletion completed!");
+                            callback.onSuccess();
+                            return;
+                        }
+
+                        callback.onProgress("Cleaning up saved playlist references...");
+
+                        // Create a batch operation to delete all saved references
+                        com.google.firebase.firestore.WriteBatch batch = firestore.batch();
+
+                        for (DocumentSnapshot document : task.getResult().getDocuments()) {
+                            batch.delete(document.getReference());
+                        }
+
+                        batch.commit()
+                                .addOnSuccessListener(aVoid -> {
+                                    callback.onProgress("Playlist deletion completed!");
+                                    callback.onSuccess();
+                                })
+                                .addOnFailureListener(e -> {
+                                    callback.onError("Failed to cleanup saved references: " + e.getMessage());
+                                });
+                    } else {
+                        callback.onError("Failed to find saved references: " + task.getException().getMessage());
                     }
                 });
     }
