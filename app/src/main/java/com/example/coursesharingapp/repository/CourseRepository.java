@@ -405,54 +405,6 @@ public class CourseRepository {
         });
     }
 
-    // New method for course creation with progress tracking
-    public void createCourseWithProgress(Course course, Uri thumbnailUri, Uri videoUri, UploadProgressCallback callback) {
-        // First, add the course to Firestore
-        DocumentReference courseRef = firestore.collection("courses").document();
-        course.setId(courseRef.getId());
-
-        // Upload thumbnail and video with progress tracking
-        uploadThumbnailWithProgress(course.getId(), thumbnailUri, new UploadCallback() {
-            @Override
-            public void onProgress(int progress) {
-                callback.onThumbnailProgress(progress);
-            }
-
-            @Override
-            public void onSuccess(String thumbnailUrl) {
-                callback.onThumbnailComplete();
-                course.setThumbnailUrl(thumbnailUrl);
-
-                uploadVideoWithProgress(course.getId(), videoUri, new UploadCallback() {
-                    @Override
-                    public void onProgress(int progress) {
-                        callback.onVideoProgress(progress);
-                    }
-
-                    @Override
-                    public void onSuccess(String videoUrl) {
-                        callback.onVideoComplete();
-                        course.setVideoUrl(videoUrl);
-
-                        // Save course with URLs to Firestore
-                        courseRef.set(course)
-                                .addOnSuccessListener(aVoid -> callback.onSuccess())
-                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
-                    }
-
-                    @Override
-                    public void onError(String errorMessage) {
-                        callback.onError(errorMessage);
-                    }
-                });
-            }
-
-            @Override
-            public void onError(String errorMessage) {
-                callback.onError(errorMessage);
-            }
-        });
-    }
 
     // Original editCourse method - kept for backward compatibility
     public void editCourse(Course course, Uri thumbnailUri, Uri videoUri, CourseCallback callback) {
@@ -922,5 +874,113 @@ public class CourseRepository {
             Log.e(TAG, "Invalid file URL: " + fileUrl);
             callback.onError("Invalid file URL");
         }
+    }
+    // Interface for unique access code generation
+    public interface UniqueAccessCodeCallback {
+        void onUniqueCodeGenerated(String accessCode);
+        void onError(String errorMessage);
+    }
+
+    // Generate a unique access code for courses
+    private void generateUniqueAccessCode(UniqueAccessCodeCallback callback) {
+        generateUniqueAccessCode(callback, 0);
+    }
+
+    private void generateUniqueAccessCode(UniqueAccessCodeCallback callback, int attempts) {
+        if (attempts >= 10) {
+            callback.onError("Failed to generate unique access code after 10 attempts");
+            return;
+        }
+
+        String accessCode = Course.generateAccessCode();
+
+        // Check if this access code already exists
+        firestore.collection("courses")
+                .whereEqualTo("accessCode", accessCode)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            // Access code is unique
+                            callback.onUniqueCodeGenerated(accessCode);
+                        } else {
+                            // Access code already exists, try again
+                            generateUniqueAccessCode(callback, attempts + 1);
+                        }
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Updated createCourseWithProgress method to generate unique access codes
+    public void createCourseWithProgress(Course course, Uri thumbnailUri, Uri videoUri, UploadProgressCallback callback) {
+        // First, add the course to Firestore
+        DocumentReference courseRef = firestore.collection("courses").document();
+        course.setId(courseRef.getId());
+
+        // Generate unique access code if course is private
+        if (course.isPrivate()) {
+            generateUniqueAccessCode(new UniqueAccessCodeCallback() {
+                @Override
+                public void onUniqueCodeGenerated(String accessCode) {
+                    course.setAccessCode(accessCode);
+                    proceedWithUpload(course, courseRef, thumbnailUri, videoUri, callback);
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError("Failed to generate unique access code: " + errorMessage);
+                }
+            });
+        } else {
+            proceedWithUpload(course, courseRef, thumbnailUri, videoUri, callback);
+        }
+    }
+
+    // Helper method to proceed with upload after access code generation
+    private void proceedWithUpload(Course course, DocumentReference courseRef, Uri thumbnailUri, Uri videoUri, UploadProgressCallback callback) {
+        // Upload thumbnail and video with progress tracking
+        uploadThumbnailWithProgress(course.getId(), thumbnailUri, new UploadCallback() {
+            @Override
+            public void onProgress(int progress) {
+                callback.onThumbnailProgress(progress);
+            }
+
+            @Override
+            public void onSuccess(String thumbnailUrl) {
+                callback.onThumbnailComplete();
+                course.setThumbnailUrl(thumbnailUrl);
+
+                uploadVideoWithProgress(course.getId(), videoUri, new UploadCallback() {
+                    @Override
+                    public void onProgress(int progress) {
+                        callback.onVideoProgress(progress);
+                    }
+
+                    @Override
+                    public void onSuccess(String videoUrl) {
+                        callback.onVideoComplete();
+                        course.setVideoUrl(videoUrl);
+
+                        // Save course with URLs to Firestore
+                        courseRef.set(course)
+                                .addOnSuccessListener(aVoid -> callback.onSuccess())
+                                .addOnFailureListener(e -> callback.onError(e.getMessage()));
+                    }
+
+                    @Override
+                    public void onError(String errorMessage) {
+                        callback.onError(errorMessage);
+                    }
+                });
+            }
+
+            @Override
+            public void onError(String errorMessage) {
+                callback.onError(errorMessage);
+            }
+        });
     }
 }

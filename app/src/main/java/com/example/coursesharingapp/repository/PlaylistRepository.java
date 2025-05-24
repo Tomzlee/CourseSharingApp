@@ -285,37 +285,6 @@ public class PlaylistRepository {
                 .addOnFailureListener(e -> callback.onError(e.getMessage()));
     }
 
-    // New method for playlist creation with progress tracking
-    public void createPlaylistWithProgress(Playlist playlist, PlaylistCreationProgressCallback callback) {
-        callback.onProgress("Preparing playlist creation...");
-
-        DocumentReference playlistRef = firestore.collection("playlists").document();
-        playlist.setId(playlistRef.getId());
-
-        callback.onProgress("Validating playlist data...");
-
-        // Validate playlist has required fields
-        if (playlist.getTitle() == null || playlist.getTitle().trim().isEmpty()) {
-            callback.onError("Playlist title is required");
-            return;
-        }
-
-        if (playlist.getCourseIds() == null || playlist.getCourseIds().size() < 2) {
-            callback.onError("Playlist must contain at least 2 courses");
-            return;
-        }
-
-        callback.onProgress("Creating playlist in database...");
-
-        playlistRef.set(playlist)
-                .addOnSuccessListener(aVoid -> {
-                    callback.onProgress("Playlist created successfully!");
-                    callback.onSuccess();
-                })
-                .addOnFailureListener(e -> {
-                    callback.onError("Failed to create playlist: " + e.getMessage());
-                });
-    }
 
     // Original updatePlaylist method - kept for backward compatibility
     public void updatePlaylist(Playlist playlist, PlaylistCallback callback) {
@@ -631,6 +600,97 @@ public class PlaylistRepository {
                     } else {
                         callback.onError(task.getException().getMessage());
                     }
+                });
+    }
+
+    // Interface for unique access code generation
+    public interface UniqueAccessCodeCallback {
+        void onUniqueCodeGenerated(String accessCode);
+        void onError(String errorMessage);
+    }
+
+    // Generate a unique access code for playlists
+    private void generateUniqueAccessCode(UniqueAccessCodeCallback callback) {
+        generateUniqueAccessCode(callback, 0);
+    }
+
+    private void generateUniqueAccessCode(UniqueAccessCodeCallback callback, int attempts) {
+        if (attempts >= 10) {
+            callback.onError("Failed to generate unique access code after 10 attempts");
+            return;
+        }
+
+        String accessCode = Playlist.generateAccessCode();
+
+        // Check if this access code already exists
+        firestore.collection("playlists")
+                .whereEqualTo("accessCode", accessCode)
+                .limit(1)
+                .get()
+                .addOnCompleteListener(task -> {
+                    if (task.isSuccessful()) {
+                        if (task.getResult().isEmpty()) {
+                            // Access code is unique
+                            callback.onUniqueCodeGenerated(accessCode);
+                        } else {
+                            // Access code already exists, try again
+                            generateUniqueAccessCode(callback, attempts + 1);
+                        }
+                    } else {
+                        callback.onError(task.getException().getMessage());
+                    }
+                });
+    }
+
+    // Updated createPlaylistWithProgress method to generate unique access codes
+    public void createPlaylistWithProgress(Playlist playlist, PlaylistCreationProgressCallback callback) {
+        callback.onProgress("Preparing playlist creation...");
+
+        // Validate playlist has required fields
+        if (playlist.getTitle() == null || playlist.getTitle().trim().isEmpty()) {
+            callback.onError("Playlist title is required");
+            return;
+        }
+
+        if (playlist.getCourseIds() == null || playlist.getCourseIds().size() < 2) {
+            callback.onError("Playlist must contain at least 2 courses");
+            return;
+        }
+
+        // Generate unique access code if playlist is private
+        if (playlist.isPrivate()) {
+            callback.onProgress("Generating unique access code...");
+            generateUniqueAccessCode(new UniqueAccessCodeCallback() {
+                @Override
+                public void onUniqueCodeGenerated(String accessCode) {
+                    playlist.setAccessCode(accessCode);
+                    proceedWithPlaylistCreation(playlist, callback);
+                }
+
+                @Override
+                public void onError(String errorMessage) {
+                    callback.onError("Failed to generate unique access code: " + errorMessage);
+                }
+            });
+        } else {
+            proceedWithPlaylistCreation(playlist, callback);
+        }
+    }
+
+    // Helper method to proceed with playlist creation after access code generation
+    private void proceedWithPlaylistCreation(Playlist playlist, PlaylistCreationProgressCallback callback) {
+        callback.onProgress("Creating playlist in database...");
+
+        DocumentReference playlistRef = firestore.collection("playlists").document();
+        playlist.setId(playlistRef.getId());
+
+        playlistRef.set(playlist)
+                .addOnSuccessListener(aVoid -> {
+                    callback.onProgress("Playlist created successfully!");
+                    callback.onSuccess();
+                })
+                .addOnFailureListener(e -> {
+                    callback.onError("Failed to create playlist: " + e.getMessage());
                 });
     }
 }
